@@ -1,0 +1,142 @@
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ords
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: ords
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ords
+        spec:
+          volumes:
+            - name: ords-debug
+              configMap:
+                name: ords-debug
+            - name: ords-default-config
+              configMap:
+                name: ords-default-config
+            - name: ords-pool-config
+              configMap:
+                name: ords-pool-config
+            - name: liquibase
+              configMap:
+                name: liquibase
+            - name: tns-admin
+              secret:
+                secretName: "{{ database_default_db | lower }}-tns-admin"
+            - name: ords-wallet
+              emptyDir: {}
+            - name: ords-log
+              emptyDir: {}
+          initContainers:
+            - name: liquibase
+              image: container-registry.oracle.com/database/sqlcl:latest
+              imagePullPolicy: IfNotPresent
+              args: ["-L", "-nohistory", "$(LB_COMMAND_USERNAME)/$(LB_COMMAND_PASSWORD)@$(LB_COMMAND_URL)", "@liquibase.sql"]
+              env:
+                - name: LB_COMMAND_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.username
+                - name: LB_COMMAND_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.password
+                - name: DB_SERVICE
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.service
+                - name: LB_COMMAND_URL
+                  value: jdbc:oracle:thin:@$(DB_SERVICE)?TNS_ADMIN=/opt/oracle/network/admin
+                - name: ORDS_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.password
+              volumeMounts:
+              - mountPath: /opt/oracle/network/admin
+                name: tns-admin
+                readOnly: true
+              - mountPath: /opt/oracle/sql_scripts
+                name: liquibase
+                readOnly: true
+          containers:
+            - image: "container-registry.oracle.com/database/ords:latest"
+              imagePullPolicy: IfNotPresent
+              name: ords
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  ords --config $ORDS_CONFIG config secret --password-stdin db.password <<< $ORDS_PWD;
+                  ords --config $ORDS_CONFIG serve
+              env:
+                # - name: _JAVA_OPTIONS
+                #   value: -Djava.util.logging.config.file=/opt/oracle/standalone/config/global/logging.properties
+                - name: ORDS_CONFIG
+                  value: /opt/oracle/standalone/config
+                - name: ORACLE_HOME
+                  value: /opt/oracle
+                - name: TNS_ADMIN
+                  value: /opt/oracle/network/admin
+                - name: DB_SERVICE
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.service
+                - name: ORDS_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: "{{ database_default_db | lower }}-db-secrets"
+                      key: db.password
+              volumeMounts:
+                - name: ords-default-config
+                  mountPath: "/opt/oracle/standalone/config/global/"
+                  readOnly: false
+                - name: ords-pool-config
+                  mountPath: "/opt/oracle/standalone/config/databases/default/"
+                  readOnly: true
+                - name: ords-wallet
+                  mountPath: "/opt/oracle/standalone/config/databases/default/wallet"
+                  readOnly: false
+                - name: ords-log
+                  mountPath: "/opt/oracle/standalone/log"
+                  readOnly: false
+                - name: tns-admin
+                  mountPath: "/opt/oracle/network/admin"
+                  readOnly: true
+              readinessProbe:
+                tcpSocket:
+                  port: 8080
+                initialDelaySeconds: 15
+                periodSeconds: 10
+              livenessProbe:
+                tcpSocket:
+                  port: 8080
+                initialDelaySeconds: 15
+                periodSeconds: 10
+              # resources:
+              #   limits:
+              #     cpu: 100m
+              #     memory: 128Mi
+              #   requests:
+              #     cpu: 100m
+              #     memory: 128Mi
+              ports:
+                - name: ords-port
+                  containerPort: 8080
+              securityContext:
+                capabilities:
+                  drop:
+                    - ALL
+                runAsNonRoot: true
+                runAsUser: 54321
+                readOnlyRootFilesystem: false
+                allowPrivilegeEscalation: false

@@ -1,0 +1,12 @@
+---
+common_is_cloud_run: "{% if ansible_env.OCI_CLI_CLOUD_SHELL is defined %}True{% else %}False{% endif %}"
+common_proxy_uri: "{{ lookup('ansible.builtin.env', 'http_proxy', default='') }}"
+common_no_proxy: "{{ lookup('ansible.builtin.env', 'no_proxy', default='') }}"
+common_private_key_file: "private_key.pem" # This is standard-naming; file should exist in the terraform directory
+common_image_base: 17.0.2-oraclelinux8
+common_kubectl_config:
+  K8S_AUTH_PROXY: "{{ common_proxy_uri }}"
+  K8S_AUTH_NO_PROXY: "{{ common_no_proxy }}"
+  KUBECONFIG: "{{ playbook_dir }}/roles/kubernetes/files/kubeconfig"
+common_oci_env: []
+common_azure_env: []

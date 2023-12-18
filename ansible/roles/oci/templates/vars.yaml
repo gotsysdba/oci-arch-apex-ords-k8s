@@ -1,0 +1,15 @@
+---
+oci_oke:
+  cluster_id: "${oke_cluster_id}"
+  token_version: "${oke_token_version}"
+  private_endpoint: "${oke_private_endpoint}"
+oci_lbaas:
+  create_public: ${create_public}
+  pub_lb_ingress: "${pub_lb_ingress}"
+  pub_lb_nsg: "${pub_lb_nsg}"
+  min_shape: "${min_shape}"
+  max_shape: "${max_shape}"
+  reserved_ip: "${reserved_ip}"
+oci_object_storage:
+  namespace: "${bucket_namespace}"
+  buckets: ["${buckets}"]

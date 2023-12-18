@@ -1,0 +1,27 @@
+- name: Find Kustomize Overlays
+  ansible.builtin.find:
+    paths: "{{ kubernetes_dir ~ '/deployments/' ~ item }}"
+    recurse: true
+    file_type: directory
+    patterns: "{{ overlay_env }}"
+  register: project_directories
+  loop: "{{ active_applications }}"
+
+- name: Store List of Deployments
+  when: single_deployment is not defined
+  ansible.builtin.set_fact:
+    project_overlays: "{{ project_directories.results | sum(attribute='files', start=[]) | map(attribute='path') | sort }}"
+
+- name: Store List of Deployments (single_deployment)
+  when: single_deployment is defined
+  ansible.builtin.set_fact:
+    project_overlays: >-
+      {{ project_directories.results | sum(attribute='files', start=[]) |
+          selectattr('path', 'search', '/' ~ single_deployment) | map(attribute='path') }}
+
+- name: Create manifest Directories
+  ansible.builtin.file:
+    mode: "0700"
+    path: "{{ manifests_dir ~ '/' ~ item }}"
+    state: directory
+  loop: "{{ active_applications }}"

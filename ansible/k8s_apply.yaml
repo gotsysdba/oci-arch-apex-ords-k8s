@@ -1,0 +1,115 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: Apply K8 Configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - { role: kubernetes, tags: [always] }
+    - { role: software, tags: [always] }
+  environment: "{{ common_kubectl_config if common_is_cloud_run else (common_oci_env | d([])) | combine(common_kubectl_config) }}"
+
+  tasks:
+    - name: Include Infrastructure Role
+      tags: [always]
+      ansible.builtin.include_role:
+        name: "{{ overlay_env }}"
+        public: true
+        apply:
+          tags: always
+
+    ##############################################################
+    # Start Kubernetes Config Mgmt
+    ##############################################################
+    - name: Include database Role
+      tags: [always]
+      ansible.builtin.include_role:
+        name: "database"
+        public: true
+        apply:
+          tags: always
+
+    - name: Check for Database Manifests
+      tags: [always]
+      ansible.builtin.stat:
+        path: "{{ kubernetes_dir }}/deployments/database"
+      register: database_manifest
+
+    - name: Database Deployment
+      tags: [always]
+      when: database_manifest.stat.exists
+      block:
+        - name: Deploy Database Kubernetes Manifests
+          ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/kustomize.yaml"
+          register: database_deploy
+          vars:
+            deployment: "{{ kustomize_path.split('/')[-3] }}"
+            application: "{{ kustomize_path.split('/')[-4] }}"
+            apply: true
+          loop: "{{ project_overlays | select('search', '/database/') }}"
+          loop_control:
+            loop_var: kustomize_path
+
+        - name: Check for Database Deployment
+          ansible.builtin.stat:
+            path: "{{ kubernetes_dir }}/secrets/oraoper/kustomization.yaml"
+          register: oraoper_database
+
+        - name: Deploy Database
+          when: oraoper_database.stat.exists
+          ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/kustomize.yaml"
+          vars:
+            kustomize_path: "{{ kubernetes_dir }}/secrets/oraoper"
+            deployment: "oraoper"
+            application: "database"
+
+        - name: Get tns-admin Secrets
+          when: oraoper_database.stat.exists
+          kubernetes.core.k8s_info:
+            api_version: v1
+            kind: Secret
+            name: "{{ dbname | lower }}-tns-admin"
+            namespace: oracle-database-operator-system
+          register: tns_secrets
+          until: tns_secrets.resources[0].metadata.labels.app is defined
+          retries: 90
+          delay: 10
+          loop: "{{ vars.database_oracle_dbs }}"
+          loop_control:
+            loop_var: dbname
+
+        - name: Write tns-admin Manifests
+          when: oraoper_database.stat.exists
+          ansible.builtin.copy:
+            mode: "0600"
+            content: "{{ item.resources[0] | ansible.utils.remove_keys(target=['namespace', 'ownerReferences', 'resourceVersion', 'uid']) | to_nice_yaml }}"
+            dest: "{{ kubernetes_dir }}/secrets/database/{{ dbsecret }}-tns-admin.yaml"
+          vars:
+            dbsecret: "{{ item.resources[0].metadata.labels.app | default('') }}"
+          loop: "{{ tns_secrets.results }}"
+          loop_control:
+            label: "{{ kubernetes_dir }}/secrets/database/{{ dbsecret }}-tns-admin.yaml"
+
+    - name: Include tls Role
+      tags: [always]
+      ansible.builtin.include_role:
+        name: "tls"
+        public: true
+        apply:
+          tags: always
+
+    - name: Application Deployment
+      tags: [always]
+      block:
+        - name: Deploy Application Kubernetes Manifiests
+          ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/kustomize.yaml"
+          register: application_deploy
+          vars:
+            deployment: "{{ kustomize_path.split('/')[-3] }}"
+            application: "{{ kustomize_path.split('/')[-4] }}"
+          loop: "{{ project_overlays | reject('search', '/database/') | sort }}"
+          loop_control:
+            loop_var: kustomize_path

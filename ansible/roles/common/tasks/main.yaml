@@ -1,0 +1,75 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: Set Infrastructure
+  tags: [always]
+  ansible.builtin.set_fact:
+    overlay_env: >-
+      {%- if common_azure_env.subscription is defined and common_azure_env.subscription != "N/A" -%}
+        azure
+      {%- elif common_oci_env.OCI_CLI_TENANCY is defined -%}
+        oci
+      {%- else -%}
+        onprem
+      {%- endif -%}
+
+- name: Include project specific variables
+  ansible.builtin.include_vars:
+    dir: "{{ playbook_dir }}/vars"
+    ignore_unknown_extensions: true
+    ignore_files:
+      - "README.md"
+
+- name: Set Active Applications
+  ansible.builtin.set_fact:
+    active_applications: "{{ active_applications | default([]) + ['common', 'database'] }}"
+
+- name: Get Enabled Applications
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/vars"
+    recurse: false
+    file_type: file
+    patterns: "*.yaml"
+    excludes: "README.md"
+  register: application_files
+
+- name: Update Active Applications with Enabled
+  ansible.builtin.set_fact:
+    active_applications: "{{ active_applications + [item | basename | regex_replace('.yaml$', '')] }}"
+  loop: "{{ application_files.files | map(attribute='path') }}"
+
+# Locations will vary depending on cloud-run or source-run (check for cloud first for stack testing)
+- name: Get Location of terraform Path
+  ansible.builtin.stat:
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+    path: "{{ playbook_dir }}/../terraform"
+  register: terraform_path
+
+- name: Set oci_terraform_dir
+  ansible.builtin.set_fact:
+    oci_terraform_dir: "{{ playbook_dir ~ '/' ~ terraform_path.stat.exists | ternary('../terraform/oci', '../') }}"
+
+- name: Set azure_terraform_dir
+  ansible.builtin.set_fact:
+    azure_terraform_dir: "{{ playbook_dir ~ '/' ~ terraform_path.stat.exists | ternary('../terraform/azure', '../') }}"
+
+- name: Set kubernetes_dir
+  ansible.builtin.set_fact:
+    kubernetes_dir: "{{ playbook_dir ~ '/../kubernetes' }}"
+
+- name: Set manifests_dir
+  ansible.builtin.set_fact:
+    manifests_dir: "{{ kubernetes_dir ~ '/manifests' }}"
+
+- name: Set images_dir
+  ansible.builtin.set_fact:
+    images_dir: "{{ playbook_dir ~ '/../images' }}"
+
+- name: Set OCI_CLI_KEY_FILE
+  when: common_oci_env | length > 0
+  ansible.builtin.set_fact:
+    common_oci_env: "{{ common_oci_env | combine( { 'OCI_CLI_KEY_FILE': oci_terraform_dir ~ '/' ~ common_private_key_file } ) }}"

@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: "Secret"
+type: "Opaque"
+metadata:
+    name: "{{ dbname | lower }}-tns-admin"
+    labels:
+        app: {{ dbname | lower }}
+data:
+    tnsnames.ora:
+        {{ (dbname ~"="~ vars[dbname]['service']~"\n"~
+           dbname ~"_TP="~ vars[dbname]['service']~"\n"~
+           dbname ~"_LOW="~ vars[dbname]['service']~"\n"~
+           dbname ~"_HIGH="~ vars[dbname]['service']) | b64encode }}

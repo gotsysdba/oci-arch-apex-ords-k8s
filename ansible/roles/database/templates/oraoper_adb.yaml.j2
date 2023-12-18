@@ -1,0 +1,47 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ dbname | lower }}-admin-password"
+type: Opaque
+data:
+  {{ dbname | lower }}-admin-password: "{{ vars[dbname]['password'] | ansible.builtin.b64encode }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ dbname | lower }}-instance-wallet-password"
+type: Opaque
+data:
+  {{ dbname | lower }}-instance-wallet-password: "{{ vars[dbname]['password'] | ansible.builtin.b64encode }}"
+---
+# This binds to the database
+apiVersion: database.oracle.com/v1alpha1
+kind: AutonomousDatabase
+metadata:
+  name: {{ dbname | lower }}
+spec:
+  details:
+{% if vars[dbname]['ocid'] == "N/A" or vars[dbname]['ocid'] | length == 0 %}
+    compartmentOCID: {{ common_oci_env.compartment_ocid }}
+    dbName: {{ dbname }}
+    displayName: {{ dbname }}
+    cpuCoreCount: 1
+    dataStorageSizeInTBs: 1
+{% else %}
+    autonomousDatabaseOCID: {{ vars[dbname]['ocid'] }}
+{% endif %}
+    adminPassword:
+      k8sSecret:
+        name: {{ dbname | lower }}-admin-password
+    wallet:
+      name: {{ dbname | lower }}-tns-admin
+      password:
+        k8sSecret:
+          name: {{ dbname | lower }}-instance-wallet-password
+{% if overlay_env != 'oci' %}
+  hardLink: true
+  ociConfig:
+    configMapName: oci-cred
+    secretName: oci-privatekey
+{% endif %}

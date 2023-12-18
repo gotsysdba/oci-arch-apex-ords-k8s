@@ -1,0 +1,24 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: Search for {{ resource }}
+  ansible.builtin.command:
+    cmd: "{{ kubectl_bin }} get {{ resource }} -A --no-headers --selector=app.kubernetes.io/part-of={{ item }} --ignore-not-found=true"
+  register: delete
+  loop:
+    - "database"
+    - "common"
+  changed_when: delete.stdout | length > 0
+  failed_when:
+    - delete.rc == 1
+    - '"the server doesn''t have a resource type" not in delete.stderr'
+
+- name: Delete {{ resource }}
+  ansible.builtin.command:
+    cmd: "{{ kubectl_bin }} delete {{ resource }} {{ item.split()[0] }}"
+  loop: "{{ delete.results | sum(attribute='stdout_lines', start=[]) | sort(reverse=True) }}"
+  loop_control:
+    label: "{{ item.split()[0] }}"
+  changed_when: true

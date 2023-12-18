@@ -1,0 +1,61 @@
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: liquibase
+    data:
+      liquibase.sql: "liquibase update -chf changelog.sql"
+      changelog.sql: |-
+        -- liquibase formatted sql
+
+        -- changeset gotsysdba:create_users endDelimiter:/ runAlways:true
+        -- validCheckSum: 1:ANY
+        DECLARE
+          l_user VARCHAR2(255);
+          l_cdn  VARCHAR2(255);
+        BEGIN
+          BEGIN
+            SELECT USERNAME INTO l_user FROM DBA_USERS WHERE USERNAME='ORDS_PUBLIC_USER_OBAAS';
+            EXECUTE IMMEDIATE 'ALTER USER "ORDS_PUBLIC_USER_OBAAS" PROFILE ORA_APP_PROFILE';
+            EXECUTE IMMEDIATE 'ALTER USER "ORDS_PUBLIC_USER_OBAAS" IDENTIFIED BY "${ORDS_PWD}"';
+          EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+              EXECUTE IMMEDIATE 'CREATE USER "ORDS_PUBLIC_USER_OBAAS" IDENTIFIED BY "${ORDS_PWD}" PROFILE ORA_APP_PROFILE';
+          END;
+          EXECUTE IMMEDIATE 'GRANT CONNECT TO "ORDS_PUBLIC_USER_OBAAS"';
+          BEGIN
+            SELECT USERNAME INTO l_user FROM DBA_USERS WHERE USERNAME='ORDS_PLSQL_GATEWAY_OBAAS';
+              EXECUTE IMMEDIATE 'ALTER USER "ORDS_PLSQL_GATEWAY_OBAAS" PROFILE DEFAULT';
+              EXECUTE IMMEDIATE 'ALTER USER "ORDS_PLSQL_GATEWAY_OBAAS" NO AUTHENTICATION';
+            EXCEPTION
+              WHEN NO_DATA_FOUND THEN
+                EXECUTE IMMEDIATE 'CREATE USER "ORDS_PLSQL_GATEWAY_OBAAS" NO AUTHENTICATION PROFILE DEFAULT';
+          END;
+          EXECUTE IMMEDIATE 'GRANT CONNECT TO "ORDS_PLSQL_GATEWAY_OBAAS"';
+          EXECUTE IMMEDIATE 'ALTER USER "ORDS_PLSQL_GATEWAY_OBAAS" GRANT CONNECT THROUGH "ORDS_PUBLIC_USER_OBAAS"';
+          ORDS_ADMIN.PROVISION_RUNTIME_ROLE (
+             p_user => 'ORDS_PUBLIC_USER_OBAAS'
+            ,p_proxy_enabled_schemas => TRUE
+          );
+          ORDS_ADMIN.CONFIG_PLSQL_GATEWAY (
+             p_runtime_user => 'ORDS_PUBLIC_USER_OBAAS'
+            ,p_plsql_gateway_user => 'ORDS_PLSQL_GATEWAY_OBAAS'
+          );
+
+          BEGIN
+            SELECT images_version INTO L_CDN
+              FROM APEX_PATCHES
+            where is_bundle_patch = 'Yes'
+            order by patch_version desc
+            fetch first 1 rows only;
+          EXCEPTION WHEN NO_DATA_FOUND THEN
+            select version_no INTO L_CDN
+              from APEX_RELEASE;
+          END;
+          apex_instance_admin.set_parameter(
+              p_parameter => 'IMAGE_PREFIX',
+              p_value     => 'https://static.oracle.com/cdn/apex/'||L_CDN||'/'
+          );
+        END;
+        /
+        --rollback drop user "ORDS_PUBLIC_USER_OBAAS" cascade;
+        --rollback drop user "ORDS_PLSQL_GATEWAY_OBAAS" cascade;

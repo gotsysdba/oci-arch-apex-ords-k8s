@@ -1,0 +1,8 @@
+---
+tls_ca_pem_file: "{{ kubernetes_dir }}/secrets/tls-certificate/files/ca.pem"
+tls_csr_file: "{{ kubernetes_dir }}/secrets/tls-certificate/files/tls.csr"
+tls_crt_file: "{{ kubernetes_dir }}/secrets/tls-certificate/files/tls.crt"
+tls_pri_key_file: "{{ kubernetes_dir }}/secrets/tls-certificate/files/tls.key"
+tls_ca_csr_file: "{{ kubernetes_dir }}/secrets/tls-certificate/files/ca.csr"
+tls_enc_key_file: "{{ kubernetes_dir }}/secrets/encryption-secret-key/files/enc.key"
+tls_pub_key_file: "{{ kubernetes_dir }}/secrets/public-key/files/pub_key.pem"

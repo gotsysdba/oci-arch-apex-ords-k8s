@@ -1,0 +1,128 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+- name: Create secrets Directories
+  ansible.builtin.file:
+    mode: "0700"
+    path: "{{ secret_dir }}"
+    state: directory
+  loop:
+    - "{{ tls_enc_key_file | dirname }}"
+    - "{{ tls_pub_key_file | dirname }}"
+    - "{{ tls_pri_key_file | dirname }}"
+  loop_control:
+    loop_var: secret_dir
+
+- name: Generate a Encryption Key
+  ansible.builtin.copy:
+    mode: "0600"
+    force: false
+    dest: "{{ tls_enc_key_file }}"
+    content: "{{ query('community.general.random_string', override_all=hex_chars) }}.0"
+  vars:
+    hex_chars: "0123456789ABCDEF"
+
+- name: Create private key (RSA, 3072 bits)
+  community.crypto.openssl_privatekey:
+    mode: "0600"
+    path: "{{ tls_pri_key_file }}"
+    size: 3072
+    type: RSA
+
+- name: Generate an public key in PEM format
+  community.crypto.openssl_publickey:
+    path: "{{ tls_pub_key_file }}"
+    privatekey_path: "{{ tls_pri_key_file }}"
+
+- name: Create Certificate Signing Request for CA certificate
+  community.crypto.openssl_csr:
+    path: "{{ tls_ca_csr_file }}"
+    common_name: Backend as a Service CA
+    use_common_name_for_san: false # since we do not specify SANs, don't use CN as a SAN
+    basic_constraints:
+      - "CA:TRUE"
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+    key_usage_critical: true
+    privatekey_path: "{{ tls_pri_key_file }}"
+
+- name: Create self-signed CA certificate from CSR
+  community.crypto.x509_certificate:
+    mode: "0600"
+    path: "{{ tls_ca_pem_file }}"
+    csr_path: "{{ tls_ca_csr_file }}"
+    privatekey_path: "{{ tls_pri_key_file }}"
+    provider: "selfsigned"
+    selfsigned_not_after: "+3650d" # this is the default
+    selfsigned_not_before: "-1d" # For TZ diffs
+
+- name: Create a Certificate Signing Request
+  community.crypto.openssl_csr:
+    path: "{{ tls_csr_file }}"
+    common_name: "localhost"
+    country_name: "GB"
+    locality_name: "London"
+    state_or_province_name: "London"
+    organization_name: "Oracle Backend as a Service"
+    organizational_unit_name: "Automation"
+    privatekey_path: "{{ tls_pri_key_file }}"
+    subject_alt_name: "{{ 'IP:127.0.0.1,DNS:private.container-registry,DNS:private.container-registry.svc.cluster.local' ~ dns_registry_ip | default() }}"
+
+- name: Generate a Self-Signed certificate
+  community.crypto.x509_certificate:
+    mode: "0600"
+    path: "{{ tls_crt_file }}"
+    privatekey_path: "{{ tls_pri_key_file }}"
+    csr_path: "{{ tls_csr_file }}"
+    provider: "ownca"
+    ownca_path: "{{ tls_ca_pem_file }}"
+    ownca_privatekey_path: "{{ tls_pri_key_file }}"
+    ownca_not_after: "+365d" # valid for one year
+    ownca_not_before: "-1d" # valid since yesterday
+
+- name: Create tls-certificate Secret Manifest
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ kubernetes_dir }}/secrets/tls-certificate/kustomization.yaml"
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      generatorOptions:
+        disableNameSuffixHash: true
+      secretGenerator:
+      - name: "tls-certificate"
+        type: "kubernetes.io/tls"
+        files:
+          - files/{{ tls_ca_pem_file | basename }}
+          - files/{{ tls_csr_file | basename }}
+          - files/{{ tls_crt_file | basename }}
+          - files/{{ tls_pri_key_file | basename }}
+          - files/{{ tls_ca_csr_file | basename }}
+
+- name: Create public-key Secret Manifest
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ kubernetes_dir }}/secrets/public-key/kustomization.yaml"
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      secretGenerator:
+      - name: "public-key"
+        type: "Opaque"
+        files:
+          - secret=files/{{ tls_pub_key_file | basename }}
+
+- name: Create encryption-secret-key Secret Manifest
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ kubernetes_dir }}/secrets/encryption-secret-key/kustomization.yaml"
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      secretGenerator:
+      - name: "encryption-secret-key"
+        type: "Opaque"
+        files:
+          - secret={{ tls_enc_key_file }}

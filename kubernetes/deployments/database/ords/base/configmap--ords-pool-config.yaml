@@ -1,0 +1,17 @@
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ords-pool-config
+      labels:
+        name: ords-pool-config
+    data:
+      pool.xml: |-
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+        <properties>
+          <entry key="db.connectionType">tns</entry>
+          <entry key="db.tnsAliasName">{{ vars[database_default_db]['service'] }}</entry>
+          <entry key="db.tnsDirectory">/opt/oracle/network/admin</entry>
+          <entry key="db.username">ORDS_PUBLIC_USER_OBAAS</entry>
+          <entry key="plsql.gateway.mode">proxied</entry>
+        </properties>

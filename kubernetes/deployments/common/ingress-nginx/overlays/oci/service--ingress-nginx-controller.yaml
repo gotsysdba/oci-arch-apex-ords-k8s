@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    bif.tek: wired-for-sound
+    oci.oraclecloud.com/load-balancer-type: lb
+    oci.oraclecloud.com/oci-network-security-groups: '{{ oci_lbaas.pub_lb_nsg }}'
+    service.beta.kubernetes.io/oci-load-balancer-backend-protocol: HTTP
+    service.beta.kubernetes.io/oci-load-balancer-health-check-interval: "10000"
+    service.beta.kubernetes.io/oci-load-balancer-health-check-retries: "3"
+    service.beta.kubernetes.io/oci-load-balancer-health-check-timeout: "3000"
+    service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: None
+    service.beta.kubernetes.io/oci-load-balancer-shape: flexible
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: '{{ oci_lbaas.max_shape }}'
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: '{{ oci_lbaas.min_shape }}'
+    service.beta.kubernetes.io/oci-load-balancer-ssl-ports: "443"
+    service.beta.kubernetes.io/oci-load-balancer-tls-secret: tls-certificate
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+spec:
+  externalTrafficPolicy: Local
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  loadBalancerIP: '{{ oci_lbaas.reserved_ip }}'
+  ports:
+  - appProtocol: http
+    name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - appProtocol: https
+    name: https
+    port: 443
+    protocol: TCP
+    targetPort: http # avoid "The plain HTTP request was sent to HTTPS port"
+  type: "{% if oci_lbaas.create_public %}LoadBalancer{% else %}NodePort{% endif %}"

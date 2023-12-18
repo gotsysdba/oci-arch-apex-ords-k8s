@@ -1,0 +1,46 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+- name: Gather ansible_system
+  ansible.builtin.setup:
+    gather_subset:
+      - "architecture"
+  when: architecture is not defined
+
+- name: Install Kubectl
+  when: not common_is_cloud_run
+  block:
+    - name: Create Kubectl Stage Directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/stage/kubectl"
+        state: directory
+        mode: "0755"
+
+    - name: Check if kubectl file exists
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/stage/kubectl/kubectl"
+      register: kubectl_file
+
+    - name: Download Kubectl
+      when: not kubectl_file.stat.exists
+      ansible.builtin.get_url:
+        url: "{{ software_kubectl.src }}/v{{ software_kubectl.ver }}/bin/{{ ansible_system | lower }}/{{ architecture }}/kubectl"
+        dest: "{{ playbook_dir }}/stage/kubectl/kubectl"
+        mode: "0755"
+      vars:
+        architecture: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+      register: kubectl_install
+      until: "kubectl_install is not failed"
+      retries: 5
+      delay: 30
+
+- name: Set kubectl_bin
+  ansible.builtin.set_fact:
+    kubectl_bin: "{% if not common_is_cloud_run %}{{ playbook_dir }}/stage/kubectl/kubectl{% else %}kubectl{% endif %}"
+
+- name: Install Kubernetes Python Package
+  when: common_is_cloud_run
+  ansible.builtin.pip:
+    name: kubernetes
+    extra_args: --user

@@ -1,0 +1,49 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: Generate Manifest - {{ deployment }}
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ manifests_dir ~ '/' ~ application ~ '/' ~ deployment ~ '.yaml' }}"
+    content: "{{ kustomize_out }}"
+  vars:
+    # Using local/custom lookup until: kubernetes.core.kustomize resolves #568
+    kustomize_out: "{{ lookup('orakustomize', dir=kustomize_path, binary_path=kubectl_bin, helm_path=helm_bin, enable_helm=true) }}" # noqa jinja[invalid]
+  register: manifest_file
+
+- name: Substitute Kustomize Manifest Variables - {{ deployment }}
+  ansible.builtin.template:
+    mode: "0600"
+    src: "{{ manifest_file.dest }}"
+    dest: "{{ manifest_file.dest }}"
+
+- name: Deploy Manifest - {{ deployment }}
+  block:
+    - name: Apply Manifest - {{ deployment }}
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ manifest_file.dest }}"
+        apply: "{{ apply | default(false) }}"
+      register: deploy
+      until: "deploy is not failed"
+      retries: 5
+      delay: 20
+      ignore_errors: false
+  rescue:
+    - name: Clean-Up Failed Deployment - {{ deployment }}
+      kubernetes.core.k8s:
+        state: absent
+        src: "{{ manifest_file.dest }}"
+
+    - name: Re-Apply Manifest - {{ deployment }}
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ manifest_file.dest }}"
+        apply: "{{ apply | default(false) }}"
+      register: deploy
+      until: "deploy is not failed"
+      retries: 5
+      delay: 20
+      ignore_errors: true

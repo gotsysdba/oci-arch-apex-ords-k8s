@@ -1,0 +1,72 @@
+##############################################################################
+# General
+##############################################################################
+*.pem
+**/wallet/**
+**/__pycache__
+stack/**
+
+##############################################################################
+# Ansible
+##############################################################################
+ansible/.venv
+ansible/stage
+ansible/roles/kubernetes/files/kubeconfig
+ansible/**/vars/**
+!ansible/vars/README.md
+ansible/logs
+
+##############################################################################
+# Kubernetes
+##############################################################################
+kubernetes/configmaps/**/files
+kubernetes/deployments/**/base/charts
+kubernetes/manifests
+kubernetes/secrets
+
+##############################################################################
+# Terraform
+##############################################################################
+**/terraform.tfvars*
+**/.terraform*
+**/terraform.tfstate*
+**/backend.conf
+**/backend.tf
+!**/*.auto.tfvars
+
+##############################################################################
+# Dev Env
+##############################################################################
+.DS_Store
+.*.swp
+crash.log
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+### VS Code ###
+.vscode/
+
+##############################################################################
+# General Exceptions
+##############################################################################
+!**/.gitkeep
+**/target

@@ -1,0 +1,151 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+- name: OCI Configuration
+  when: common_oci_env.OCI_CLI_TENANCY is defined and overlay_env == 'oci'
+  block:
+    - name: Generate kubeconfig file
+      ansible.builtin.shell: |
+        oci ce cluster create-kubeconfig \
+          --cluster-id {{ oci_oke.cluster_id }} \
+          --file {{ common_kubectl_config.KUBECONFIG }} \
+          --region {{ lookup('ansible.builtin.env', 'OCI_REGION', default=common_oci_env.OCI_CLI_REGION) }} \
+          --token-version {{ oci_oke.token_version }} \
+          --kube-endpoint {{ 'PUBLIC_ENDPOINT' if oci_oke.private_endpoint == "N/A" else 'PRIVATE_ENDPOINT' }}
+      register: kubeconfig_generate
+      changed_when: kubeconfig_generate.rc != 0
+
+    - name: Update KUBECONFIG for Private Endpoint Access (server)
+      when: oci_oke.private_endpoint is defined and oci_oke.private_endpoint != "N/A"
+      ansible.builtin.replace:
+        path: "{{ common_kubectl_config.KUBECONFIG }}"
+        regexp: "server:.*$"
+        replace: "server: https://{{ oci_oke.private_endpoint }}:6443"
+
+    - name: Update KUBECONFIG for Private Endpoint Access (tls-verify)
+      when: oci_oke.private_endpoint is defined and oci_oke.private_endpoint != "N/A"
+      ansible.builtin.replace:
+        path: "{{ common_kubectl_config.KUBECONFIG }}"
+        regexp: "certificate-authority-data:.*$"
+        replace: "insecure-skip-tls-verify: true"
+
+    - name: Change KUBECONFIG permissions
+      ansible.builtin.file:
+        path: "{{ common_kubectl_config.KUBECONFIG }}"
+        mode: "0600"
+
+- name: Create a ServiceAccount
+  block:
+    - name: ServiceAccount ansible-robot
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          api_version: v1
+          kind: ServiceAccount
+          metadata:
+            name: ansible-robot
+            namespace: kube-system
+
+    - name: ClusterRoleBinding ansible-cluster-admin
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: ansible-cluster-admin
+            namespace: kube-system
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+            - kind: ServiceAccount
+              name: ansible-robot
+              namespace: kube-system
+
+    - name: Secret ansible-robot-token
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          type: kubernetes.io/service-account-token
+          kind: Secret
+          metadata:
+            name: ansible-robot-token
+            namespace: kube-system
+            annotations:
+              kubernetes.io/service-account.name: ansible-robot
+        wait: true
+        wait_sleep: 10
+        wait_timeout: 300
+      register: robot_token
+
+    - name: Set Credentials
+      ansible.builtin.shell: |
+        {{ kubectl_bin }} config set-credentials ansible-robot --token={{ robot_token.result.data.token | b64decode }}
+        {{ kubectl_bin }} config set-context --current --user=ansible-robot
+      register: kubeconfig_creds
+      changed_when: kubeconfig_creds.rc != 0
+
+- name: Create Object Storage Secrets
+  when: oci_object_storage.s3_access_key is defined and oci_object_storage.s3_access_key != "N/A"
+  block:
+    - name: Create secrets/object-storage Kustomization Directory
+      ansible.builtin.file:
+        path: "{{ kubernetes_dir }}/secrets/object-storage/files"
+        state: directory
+        mode: "0700"
+
+    - name: Write object-storage kustomization.yaml
+      ansible.builtin.copy:
+        mode: "0600"
+        dest: "{{ kubernetes_dir }}/secrets/object-storage/kustomization.yaml"
+        content: |
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          secretGenerator:
+            - name: s3-login
+              type: "Opaque"
+              literals:
+                - s3.access_key="{{ oci_object_storage['s3_access_key'] }}"
+                - s3.private_key="{{ oci_object_storage['s3_private_key'] }}"
+
+- name: Check for Vault Kustomization
+  ansible.builtin.stat:
+    path: "{{ kubernetes_dir }}/deployments/ebaas/vault/base/kustomization.yaml"
+  register: vault_kustomization
+
+- name: Process Vault Kustomization
+  when: vault_kustomization.stat.exists
+  block:
+    - name: Set Vault Server Mode to HA (OCI - KMS)
+      when: overlay_env == 'oci' and vault_key is defined and vault_key != "N/A"
+      ansible.builtin.blockinfile:
+        path: "{{ kubernetes_dir }}/deployments/ebaas/vault/base/kustomization.yaml"
+        marker: "    # {mark} Dynamically Manipulated #"
+        block: |4
+                valuesInline:
+                  server:
+                    extraArgs: "-config=/vault/userconfig/vault-config/config.hcl"
+                    ha:
+                      enabled: true
+
+    - name: Set Vault Server Mode to DEV
+      when: overlay_env == 'oci' and (vault_key is not defined or vault_key == "N/A")
+      ansible.builtin.blockinfile:
+        path: "{{ kubernetes_dir }}/deployments/ebaas/vault/base/kustomization.yaml"
+        marker: "    # {mark} Dynamically Manipulated #"
+        block: |4
+                valuesInline:
+                  server:
+                    extraArgs: "-dev-listen-address='[::]:8200' -non-interactive"
+                    readinessProbe:
+                      enabled: false
+                    dev:
+                      enabled: true
+                    auditStorage:
+                      enabled: false
+                    extraEnvironmentVars:
+                      VAULT_ADDR: http://localhost:8200

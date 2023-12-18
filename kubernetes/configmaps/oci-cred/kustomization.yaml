@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: oci-cred
+    literals:
+      - tenancy="{{ common_oci_env.OCI_CLI_TENANCY }}"
+      - user="{{ common_oci_env.OCI_CLI_USER }}"
+      - fingerprint="{{ common_oci_env.OCI_CLI_FINGERPRINT }}"
+      - region="{{ common_oci_env.OCI_CLI_REGION }}"

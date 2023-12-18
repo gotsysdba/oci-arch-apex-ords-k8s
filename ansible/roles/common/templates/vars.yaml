@@ -1,0 +1,7 @@
+---
+common_oci_env:
+  OCI_CLI_TENANCY: "${oci_tenancy_ocid}"
+  OCI_CLI_USER: "${oci_user_ocid}"
+  OCI_CLI_FINGERPRINT: "${oci_fingerprint}"
+  OCI_CLI_REGION: "${oci_region}"
+  compartment_ocid: "${oci_compartment_ocid}"

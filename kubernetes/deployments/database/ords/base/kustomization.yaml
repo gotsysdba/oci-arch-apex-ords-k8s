@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ords
+labels:
+  - pairs:
+      app.kubernetes.io/name: ords
+      app.kubernetes.io/part-of: database
+      app.kubernetes.io/version: 23.3.0
+    includeTemplates: true
+resources:
+  - namespace--ords.yaml
+  - ../../../../secrets/database
+  - configmap--liquibase.yaml
+  - configmap--ords-default-config.yaml
+  - configmap--ords-pool-config.yaml
+  - deployment--ords.yaml
+  - service--ords.yaml
+  - ingress--ords.yaml
+images:
+  - name: "container-registry.oracle.com/database/sqlcl"
+    newTag: "23.3.0"
+  - name: "container-registry.oracle.com/database/ords"
+    newTag: "23.3.0"

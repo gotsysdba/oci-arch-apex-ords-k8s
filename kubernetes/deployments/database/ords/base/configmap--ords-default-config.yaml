@@ -1,0 +1,37 @@
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ords-default-config
+      labels:
+        name: ords-default-config
+    data:
+      settings.xml: |-
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+        <properties>
+          <comment>Default created by OBaaS</comment>
+          <entry key="database.api.enabled">false</entry>
+          <entry key="debug.printDebugToScreen">false</entry>
+          <entry key="feature.sdw">false</entry>
+          <entry key="jdbc.InitialLimit">10</entry>
+          <entry key="jdbc.MaxLimit">100</entry>
+          <entry key="log.procedure">false</entry>
+          <entry key="misc.defaultPage">apex</entry>
+          <entry key="restEnabledSql.active">false</entry>
+          <entry key="security.httpsHeaderCheck">X-Forwarded-Proto: https</entry>
+          <entry key="standalone.context.path">/</entry>
+          <entry key="standalone.http.port">8080</entry>
+          <entry key="standalone.static.context.path">/i</entry>
+          <entry key="standalone.access.log">/opt/oracle/standalone/log</entry>
+        </properties>
+      logging.properties: |-
+        handlers=java.util.logging.FileHandler
+        .level=SEVERE
+
+        java.util.logging.FileHandler.level=ALL
+        oracle.dbtools.level=FINEST
+
+        # full pathname for logging output file
+        java.util.logging.FileHandler.pattern = /opt/oracle/standalone/log/ords_debug.log
+
+        java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter

@@ -1,0 +1,60 @@
+---
+apiVersion: database.oracle.com/v1alpha1
+kind: SingleInstanceDatabase
+metadata:
+  name: {{ dbname | lower }}-db
+spec:
+  sid: {{ dbname }}CDB
+  cloneFrom: ""
+  edition: enterprise
+  adminPassword:
+    secretName: "{{ dbname | lower }}-db-secrets"
+    secretKey: db.password
+    keepSecret: true
+  charset: AL32UTF8
+  pdbName: "{{ dbname }}PDB"
+  flashBack: false
+  archiveLog: false
+  forceLog: false
+  enableTCPS: false
+  tcpsCertRenewInterval: 8760h
+  initParams:
+    cpuCount: 2
+    processes: 1800
+    sgaTarget: 2048
+    pgaAggregateTarget: 512
+  image:
+    pullFrom: "{{ database_image }}"
+    pullSecrets:
+    prebuiltDB: false
+  persistence:
+    size: 20Gi
+    storageClass: "standard"
+    accessMode: "ReadWriteOnce"
+    volumeName: ""
+  loadBalancer: false
+  serviceAccountName: default
+  replicas: 1
+...
+---
+apiVersion: database.oracle.com/v1alpha1
+kind: OracleRestDataService
+metadata:
+  name: {{ dbname | lower }}-ords
+spec:
+  databaseRef: "{{ dbname | lower }}-db"
+  adminPassword:
+    secretName: "{{ dbname | lower }}-db-secrets"
+    secretKey: db.password
+    keepSecret: true
+  ordsPassword:
+    secretName: "{{ dbname | lower }}-db-secrets"
+    secretKey: db.password
+    keepSecret: true
+  apexPassword:
+    # Required for ORDS_METADATA
+    secretName: "{{ dbname | lower }}-db-secrets"
+    secretKey: db.password
+    keepSecret: true
+  image:
+    pullFrom: "{{ database_ords_image }}"

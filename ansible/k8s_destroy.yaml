@@ -1,0 +1,180 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: K8s Destroy
+  hosts: localhost
+  connection: local
+  roles:
+    - { role: software, tags: [always] }
+  environment: "{{ common_kubectl_config if common_is_cloud_run else (common_oci_env | d([])) | combine(common_kubectl_config) }}"
+
+  tasks:
+    - name: Include Infrastructure Role
+      tags: [always]
+      ansible.builtin.include_role:
+        name: "{{ overlay_env }}"
+        public: true
+        apply:
+          tags: always
+
+    ###############################################################
+    ## Generated Directories
+    ###############################################################
+    - name: Clean Generated Directories
+      tags: [always]
+      block:
+        - name: Find Deployment Chart Directories
+          ansible.builtin.find:
+            paths: "{{ kubernetes_dir }}"
+            recurse: true
+            file_type: directory
+            patterns: "charts"
+          register: deployment_charts
+
+        - name: Remove Deployment Chart Directories
+          when: deployment_charts is defined
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop: "{{ deployment_charts.files | map(attribute='path') }}"
+
+        - name: Remove Secrets Directory
+          ansible.builtin.file:
+            path: "{{ kubernetes_dir }}/secrets"
+            state: absent
+
+        - name: Remove Manifests Directory
+          ansible.builtin.file:
+            path: "{{ kubernetes_dir }}/manifests"
+            state: absent
+
+    ###############################################################
+    ## Deployments
+    ###############################################################
+    - name: Verify kube-config file exists
+      tags: [always]
+      ansible.builtin.stat:
+        path: "{{ common_kubectl_config.KUBECONFIG }}"
+      register: kube_config_check
+
+    - name: Clean up Cluster
+      tags: [always]
+      when: kube_config_check.stat.exists
+      block:
+        - name: Search for Oracle Databases
+          ansible.builtin.command:
+            cmd: "{{ kubectl_bin }} get {{ item }} -A --no-headers --ignore-not-found=true"
+          register: databases
+          loop:
+            - "oraclerestdataservice.database.oracle.com"
+            - "singleinstancedatabase.database.oracle.com"
+            - "shardingdatabase.database.oracle.com"
+            - "dbcssystem.database.oracle.com"
+            - "autonomousdatabase.database.oracle.com"
+            - "autonomouscontainerdatabase.database.oracle.com"
+            - "cdb.database.oracle.com"
+            - "pdb.database.oracle.com"
+          changed_when: databases.stdout | length > 0
+          failed_when:
+            - databases.rc == 1
+            - '"the server doesn''t have a resource type" not in databases.stderr'
+
+        - name: Delete Databases
+          ansible.builtin.command:
+            cmd: "{{ kubectl_bin }} delete {{ type }}/{{ res_name }} -n {{ namespace }}"
+          vars:
+            type: "{{ item.item }}"
+            namespace: "{{ item.stdout.split()[0] }}"
+            res_name: "{{ item.stdout.split()[1] }}"
+          loop: "{{ databases.results | selectattr('stdout') }}"
+          loop_control:
+            label: "{{ res_name }}"
+          changed_when: true
+
+        - name: Search for Namespaces
+          kubernetes.core.k8s_info:
+            kind: Namespace
+            label_selectors:
+              - app.kubernetes.io/part-of={{ item }}
+          register: namespaces
+          loop:
+            - "database"
+            - "common"
+
+        # Order Matters; Delete Namespace here to avoid dangling PVCs should
+        # the NodePools start their own deletion
+        - name: Delete Namespaces
+          kubernetes.core.k8s:
+            name: "{{ item }}"
+            kind: Namespace
+            state: absent
+          loop: "{{ namespaces.results | sum(attribute='resources', start=[]) | map(attribute='metadata.name') }}"
+
+        - name: Delete Non-Namespaced Resources
+          ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/delete.yaml"
+          loop:
+            - crds
+            - mutatingwebhookconfigurations
+            - validatingwebhookconfigurations
+            - csr
+            - issuers
+            - clusterissuers
+            - orders
+            - challenges
+            - ingressclasses
+            - clusterrolebindings
+            - clusterroles
+            - apiservice
+            - flowschemas
+            - prioritylevelconfigurations
+            - priorityclasses
+          loop_control:
+            loop_var: resource
+
+    ###############################################################
+    ## Buckets
+    ###############################################################
+    - name: Purge Object Store Buckets
+      tags: [always]
+      when: oci_object_storage.buckets is defined and single_deployment is not defined and common_oci_env.OCI_CLI_TENANCY is defined
+      ansible.builtin.command:
+        cmd: oci os object bulk-delete -ns {{ oci_object_storage.namespace }} -bn {{ item }} --force
+      loop: "{{ oci_object_storage.buckets }}"
+      register: oci_out
+      changed_when: oci_out.rc == 0
+      failed_when:
+        - oci_out.rc != 0
+        - '"BucketNotFound" not in oci_out.stderr'
+        - '"ObjectNotFound" not in oci_out.stderr'
+
+    ##############################################################
+    # Environment Specific Files
+    ##############################################################
+    - name: Delete roles/kubernetes/files/kubeconfig
+      tags: [never, full]
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/roles/kubernetes/files/kubeconfig"
+        state: absent
+
+    - name: Delete roles/database/vars/main.yaml
+      tags: [never, full, terraform]
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/roles/database/vars/main.yaml"
+        state: absent
+
+    - name: Delete roles/oci/vars/main.yaml
+      tags: [never, full, terraform]
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/roles/oci/vars/main.yaml"
+        state: absent
+
+    ##############################################################
+    # Staged Files
+    ##############################################################
+    - name: Remove Stage Directory
+      tags: [never, full, stage]
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/stage"
+        state: absent

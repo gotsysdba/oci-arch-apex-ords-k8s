@@ -1,0 +1,5 @@
+# Used for K8s Setup/Config (https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+software_kubectl:
+  src: "https://dl.k8s.io/release/"
+  ver: "1.28.2"
+  upd: "11-Oct-2023"
