@@ -65,10 +65,10 @@
     country_name: "GB"
     locality_name: "London"
     state_or_province_name: "London"
-    organization_name: "Oracle Backend as a Service"
+    organization_name: "Self-Signed"
     organizational_unit_name: "Automation"
     privatekey_path: "{{ tls_pri_key_file }}"
-    subject_alt_name: "{{ 'IP:127.0.0.1,DNS:private.container-registry,DNS:private.container-registry.svc.cluster.local' ~ dns_registry_ip | default() }}"
+    subject_alt_name: "{{ 'IP:127.0.0.1' ~ dns_registry_ip | default() }}"
 
 - name: Generate a Self-Signed certificate
   community.crypto.x509_certificate:
