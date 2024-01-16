@@ -6,56 +6,15 @@
 - name: Set Infrastructure
   tags: [always]
   ansible.builtin.set_fact:
-    overlay_env: >-
-      {%- if common_azure_env.subscription is defined and common_azure_env.subscription != "N/A" -%}
-        azure
-      {%- elif common_oci_env.OCI_CLI_TENANCY is defined -%}
-        oci
-      {%- else -%}
-        onprem
-      {%- endif -%}
-
-- name: Include project specific variables
-  ansible.builtin.include_vars:
-    dir: "{{ playbook_dir }}/vars"
-    ignore_unknown_extensions: true
-    ignore_files:
-      - "README.md"
+    overlay_env: oci
 
 - name: Set Active Applications
   ansible.builtin.set_fact:
     active_applications: "{{ active_applications | default([]) + ['common', 'database'] }}"
 
-- name: Get Enabled Applications
-  ansible.builtin.find:
-    paths: "{{ playbook_dir }}/vars"
-    recurse: false
-    file_type: file
-    patterns: "*.yaml"
-    excludes: "README.md"
-  register: application_files
-
-- name: Update Active Applications with Enabled
-  ansible.builtin.set_fact:
-    active_applications: "{{ active_applications + [item | basename | regex_replace('.yaml$', '')] }}"
-  loop: "{{ application_files.files | map(attribute='path') }}"
-
-# Locations will vary depending on cloud-run or source-run (check for cloud first for stack testing)
-- name: Get Location of terraform Path
-  ansible.builtin.stat:
-    get_attributes: false
-    get_checksum: false
-    get_mime: false
-    path: "{{ playbook_dir }}/../terraform"
-  register: terraform_path
-
 - name: Set oci_terraform_dir
   ansible.builtin.set_fact:
-    oci_terraform_dir: "{{ playbook_dir ~ '/' ~ terraform_path.stat.exists | ternary('../terraform/oci', '../') }}"
-
-- name: Set azure_terraform_dir
-  ansible.builtin.set_fact:
-    azure_terraform_dir: "{{ playbook_dir ~ '/' ~ terraform_path.stat.exists | ternary('../terraform/azure', '../') }}"
+    oci_terraform_dir: "{{ playbook_dir ~ '/../' }}"
 
 - name: Set kubernetes_dir
   ansible.builtin.set_fact:

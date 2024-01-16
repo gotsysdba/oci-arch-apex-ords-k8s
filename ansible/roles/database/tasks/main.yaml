@@ -61,32 +61,3 @@
       loop: "{{ vars.database_oracle_dbs }}"
       loop_control:
         loop_var: dbname
-
-- name: Create Cloud oci-privatekey Secret
-  when: overlay_env != 'oci' and overlay_env != 'onprem'
-  block:
-    - name: Create secrets/oci-privatekey Directory
-      ansible.builtin.file:
-        mode: "0700"
-        path: "{{ kubernetes_dir }}/secrets/oci-privatekey/files"
-        state: directory
-
-    - name: Create secrets/oci-privatekey/kustomization.yaml
-      ansible.builtin.copy:
-        mode: "0600"
-        dest: "{{ kubernetes_dir }}/secrets/oci-privatekey/kustomization.yaml"
-        content: |
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          generatorOptions:
-            disableNameSuffixHash: true
-          secretGenerator:
-            - name: oci-privatekey
-              files:
-                - privatekey=files/private_key.pem
-
-    - name: Copy OCI Private Key
-      ansible.builtin.copy:
-        mode: "0600"
-        src: "{{ common_oci_env.OCI_CLI_KEY_FILE }}"
-        dest: "{{ kubernetes_dir }}/secrets/oci-privatekey/files/private_key.pem"

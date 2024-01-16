@@ -3,7 +3,7 @@
 controller:
   kind: DaemonSet
   image:
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: 100m

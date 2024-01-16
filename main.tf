@@ -8,7 +8,7 @@ resource "random_pet" "label" {
 
 // oci_core
 resource "oci_core_public_ip" "service_lb" {
-  count          = var.service_lb_is_public ? 1 : var.deploy_mbaas ? 1 : 0
+  count          = var.service_lb_is_public ? 1 : 0
   compartment_id = local.compartment_ocid
   display_name   = format("%s-rsvd-ip", local.label_prefix)
   lifetime       = "RESERVED"
@@ -23,7 +23,7 @@ resource "oci_identity_dynamic_group" "node_dynamic_group" {
   compartment_id = var.tenancy_ocid
   name           = format("%s-worker-nodes-dyngrp", local.label_prefix)
   description    = format("%s Dynamic Group - OKE Nodes", local.label_prefix)
-  matching_rule  = format("All {instance.compartment.id='%s',tag.%s.value='%s'}",
+  matching_rule = format("All {instance.compartment.id='%s',tag.%s.value='%s'}",
     local.compartment_ocid, local.tag_OKEclusterNameKey, local.tag_OKEclusterNameVal
   )
   provider = oci.home_region

@@ -1,0 +1,4 @@
+ansible>=7.4.0
+kubernetes>=26.1.0
+oci>=2.87.0
+oci-cli>=3.20.0

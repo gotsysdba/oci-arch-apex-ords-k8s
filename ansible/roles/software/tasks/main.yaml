@@ -8,6 +8,33 @@
       - "architecture"
   when: architecture is not defined
 
+- name: Helm Install
+  when: not common_is_cloud_run
+  block:
+    - name: Create Helm Stage Directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/stage/helm"
+        state: directory
+        mode: "0755"
+
+    - name: Download and Extract Helm
+      ansible.builtin.unarchive:
+        src: "{{ software_helm.src }}/helm-v{{ software_helm.ver }}-{{ ansible_system | lower }}-{{ architecture }}.tar.gz"
+        remote_src: true
+        dest: "{{ playbook_dir }}/stage/helm"
+        extra_opts: ["--strip-components=1"]
+        creates: "{{ playbook_dir }}/stage/helm/helm"
+      vars:
+        architecture: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+      register: helm_install
+      until: "helm_install is not failed"
+      retries: 5
+      delay: 30
+
+- name: Set helm_bin
+  ansible.builtin.set_fact:
+    helm_bin: "{% if not common_is_cloud_run %}{{ playbook_dir }}/stage/helm/helm{% else %}helm{% endif %}"
+
 - name: Install Kubectl
   when: not common_is_cloud_run
   block:

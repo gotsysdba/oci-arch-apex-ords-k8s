@@ -22,12 +22,30 @@ locals {
     for port in local.service_lb_allowed_ports :
     { cidr = cidr, port = port }]
   ])
+
   service_lb_cidr_port_rules = var.service_lb_is_public ? {
     for rule in local.service_lb_rules :
     "Allow custom ingress to Load Balancer port ${rule.port} from ${rule.cidr}" => {
       protocol = local.tcp_protocol, port = rule.port, source = rule.cidr, source_type = local.rule_type_cidr
     }
   } : {}
+
+  worker_internet_lookup_rules = flatten([for host in local.dns_names : [
+    for ip in data.dns_a_record_set.worker_internet_ips["${host}"].addrs :
+    { hostname = host, cidr = format("%s/32", ip) }]
+  ])
+
+  worker_internet_local_rules = flatten([for service, ips in local.worker_egress_ip : [
+      for ip in ips :
+      { hostname = service, cidr = ip }]
+  ])
+
+  worker_internet_ip_rules = {
+    for rule in concat(local.worker_internet_local_rules, local.worker_internet_lookup_rules) :
+    "Worker to ${rule.hostname} (${rule.cidr})" => {
+      protocol = local.all_protocols, port = local.all_ports, destination = rule.cidr, destination_type = local.rule_type_cidr
+    }
+  }
 }
 
 #########################################################################
@@ -95,13 +113,6 @@ locals {
       protocol    = local.tcp_protocol, port = local.all_ports, port_min = 443, port_max = 443,
       destination = data.oci_core_services.core_services.services.0.cidr_block, destination_type = local.rule_type_service
     },
-    "Workers to the Internet." : {
-      protocol    = local.tcp_protocol, port = local.all_ports
-      destination = local.anywhere, destination_type = local.rule_type_cidr
-    },
-    "Workers Path Discovery - Egress." : {
-      protocol = local.icmp_protocol, destination = local.anywhere, destination_type = local.rule_type_cidr
-    },
   }
 
   service_lb_default_rules = var.service_lb_is_public ? {
@@ -125,6 +136,7 @@ locals {
     { for k, v in local.oke_api_endpoint_default_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_api_endpoint.id }) },
     { for k, v in local.oke_api_endpoint_cidr_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_api_endpoint.id }) },
     { for k, v in local.oke_workers_default_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers.id }) },
+    { for k, v in local.worker_internet_ip_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers.id }) },
     { for k, v in local.service_lb_default_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.service_lb[0].id }) },
     { for k, v in local.service_lb_cidr_port_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.service_lb[0].id }) },
     ) : x => merge(y, {

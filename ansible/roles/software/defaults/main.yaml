@@ -3,3 +3,8 @@ software_kubectl:
   src: "https://dl.k8s.io/release/"
   ver: "1.28.2"
   upd: "11-Oct-2023"
+# Used for Helm Charts (https://helm.sh/docs/topics/version_skew/)
+software_helm:
+  src: "https://get.helm.sh"
+  ver: "3.13.0"
+  upd: "11-Oct-2023"

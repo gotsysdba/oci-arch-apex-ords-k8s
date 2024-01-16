@@ -3,9 +3,9 @@
 
 locals {
   # ansible_home is rewritten on a build
-  ansible_home  = "${path.root}/ansible"
-  orm_pe        = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
-  reserved_ip   = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
+  ansible_home = "${path.root}/ansible"
+  orm_pe       = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
+  reserved_ip  = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
 }
 
 ########################################################################
@@ -64,8 +64,9 @@ data "template_file" "tf_vars_database_file" {
   template = file("${local.ansible_home}/roles/database/templates/vars.yaml")
   vars = {
     baas_db  = oci_database_autonomous_database.default_adb.db_name
-    username = "ADMIN"
-    password = oci_database_autonomous_database.default_adb.admin_password
+    username = "SAAS_ADMIN"
+    #password = oci_database_autonomous_database_saas_admin_user.admin_user.password
+    password = sensitive(format("%s%s", random_password.adb_char.result, random_password.adb_rest.result))
     service  = format("%s_%s", oci_database_autonomous_database.default_adb.db_name, "TP")
     adb_ocid = oci_database_autonomous_database.default_adb.id
   }

@@ -1,6 +1,12 @@
 # Copyright © 2023, Oracle and/or its affiliates.
 # All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
 
+// dns_a_record_set
+data "dns_a_record_set" "worker_internet_ips" {
+  for_each = local.dns_names
+  host     = each.value
+}
+
 // oci_containerengine
 data "oci_containerengine_node_pool_option" "images" {
   node_pool_option_id = oci_containerengine_cluster.default_cluster.id

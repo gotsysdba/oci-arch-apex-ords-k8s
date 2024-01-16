@@ -67,30 +67,11 @@ variable "edition" {
   }
 }
 
-// Enablements
-variable "deploy_ebaas" {
-  description = "Deploy Oracle Backend for Spring Boot and Microservices?"
-  type        = bool
-  default     = false
-}
-
-variable "deploy_mbaas" {
-  description = "Deploy Oracle Backend for Parse Platform?"
-  type        = bool
-  default     = false
-}
-
-variable "byo_auth_token" {
-  description = "Bring Your Own Authorization Token"
-  type        = string
-  default     = ""
-}
-
 // OKE Cluster
 variable "oke_version" {
   description = "The version of Kubernetes to install into the cluster masters."
   type        = string
-  default     = "1.27.2"
+  default     = "1.28.2"
 }
 
 variable "oke_api_is_public" {
