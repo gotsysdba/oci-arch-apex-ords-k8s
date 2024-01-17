@@ -21,6 +21,25 @@ resource "oci_core_network_security_group" "oke_workers" {
   }
 }
 
+resource "oci_core_network_security_group" "oke_workers_lockdown" {
+  for_each       = var.worker_nsg_lockdown ? toset(keys(local.worker_egress_ip)) : toset([])
+  compartment_id = local.compartment_ocid
+  vcn_id         = module.network.vcn_ocid
+  display_name   = format("%s-oke-workers-%s", local.label_prefix, each.key)
+  lifecycle {
+    ignore_changes = [defined_tags, freeform_tags]
+  }
+}
+
+resource "oci_core_network_security_group_security_rule" "worker_nsg_lockdown" {
+  for_each       = var.worker_nsg_lockdown ? toset(keys(local.worker_egress_ip)) : toset([])
+  network_security_group_id = oci_core_network_security_group.oke_workers_lockdown.id
+  direction = "EGRESS"
+  protocol = local.all_protocols
+  destination = oci_core_network_security_group.oke_workers_lockdown[each.key].id
+  destination_type = "NETWORK_SECURITY_GROUP"
+}
+
 // Load Balancer
 resource "oci_core_network_security_group" "service_lb" {
   count          = var.service_lb_is_public ? 1 : 0
