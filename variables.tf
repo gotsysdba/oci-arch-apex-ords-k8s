@@ -319,5 +319,5 @@ variable "byo_private_subnet_ocid" {
 variable "worker_nsg_lockdown" {
   description = "Allow workers full access to internet?"
   type        = bool
-  default     = true
+  default     = false
 }

@@ -31,15 +31,15 @@ locals {
   } : {}
 
   # Rules based on CIDR Lokups at build time
-  worker_internet_local_rules = flatten([for service, ips in local.worker_egress_ip : [
+  worker_internet_local_rules = flatten([for service, ips in local.worker_egress_cidr : [
     for ip in ips :
     { hostname = service, cidr = ip }]
   ])
 
-  worker_internet_ip_rules = var.worker_nsg_lockdown ? {
+  worker_internet_cidr_rules = var.worker_nsg_lockdown ? {
     for rule in concat(local.worker_internet_local_rules) :
     "Worker to ${rule.hostname} (${rule.cidr})" => {
-      host= rule.hostname, protocol = local.all_protocols, port = local.all_ports, destination = rule.cidr, destination_type = local.rule_type_cidr
+      host = rule.hostname, protocol = local.all_protocols, port = local.all_ports, destination = rule.cidr, destination_type = local.rule_type_cidr
     }
   } : {}
 
@@ -53,9 +53,9 @@ locals {
   worker_internet_default_rules = var.worker_nsg_lockdown ? {
     for rule in concat(local.worker_internet_lookup_rules) :
     "Worker to ${rule.hostname} (${rule.cidr})" => {
-      host= rule.hostname, protocol = local.all_protocols, port = local.all_ports, destination = rule.cidr, destination_type = local.rule_type_cidr
+      host = rule.hostname, protocol = local.all_protocols, port = local.all_ports, destination = rule.cidr, destination_type = local.rule_type_cidr
     }
-  } : {
+    } : {
     "Workers to the Internet." : {
       protocol    = local.tcp_protocol, port = local.all_ports
       destination = local.anywhere, destination_type = local.rule_type_cidr
@@ -156,7 +156,7 @@ locals {
     { for k, v in local.oke_api_endpoint_cidr_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_api_endpoint.id }) },
     { for k, v in local.oke_workers_default_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers.id }) },
     { for k, v in local.worker_internet_default_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers.id }) },
-    merge([for p, _ in local.worker_egress_ip : { for k, v in local.worker_internet_ip_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers_lockdown[p].id }) if v.host == p }]...)
+    merge([for p, _ in local.worker_egress_cidr : { for k, v in local.worker_internet_cidr_rules : k => merge(v, { "nsg_id" = oci_core_network_security_group.oke_workers_lockdown[p].id }) if v.host == p }]...)
     ) : x => merge(y, {
       description               = x
       network_security_group_id = lookup(y, "nsg_id")

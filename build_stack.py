@@ -10,41 +10,34 @@ def fetch_ip_ranges(url):
         print(f"Error fetching IP ranges from {url}: {e}")
         return None
 
-def process_prefixes(prefixes, key):
-    return list(set(entry.get(key, "") for entry in prefixes if entry.get(key, "") and ("service" not in entry or entry["service"] == "S3") and ("region" not in entry or entry["region"] == "us-east-1")))
-
-def process_cloudflare(ip_ranges):
+def process_cloudflare(url, key=[]):
+    ip_ranges = fetch_ip_ranges(url)
     return list(set(f'{cidr}' for cidr in ip_ranges.get("result", {}).get("ipv4_cidrs", [])))
 
-def get_ip_ranges(service, key, url):
+def process_google(url, key=[]):
     ip_ranges = fetch_ip_ranges(url)
-    if ip_ranges:
-        if service in ["amazon", "google"]:
-            return process_prefixes(ip_ranges.get("prefixes", []), key)
-        elif service == "cloudflare":
-            return process_cloudflare(ip_ranges)
-        else:
-            print(f"Unsupported service: {service}")
-    else:
-        print(f"Failed to fetch IP ranges for {service}.")
-        return None
+    return [prefix['ipv4Prefix'] for prefix in ip_ranges.get("prefixes", {}) if 'ipv4Prefix' in prefix]
+
+def process_amazon(url, key=[]):
+    ip_ranges = fetch_ip_ranges(url)
+    return [prefix['ip_prefix'] for prefix in ip_ranges.get("prefixes", {}) if 'ip_prefix' in prefix and ("service" not in prefix or prefix["service"] == "S3") and ("region" not in prefix or prefix["region"] in key)]
 
 if __name__ == "__main__":
-    cloudflare = get_ip_ranges("cloudflare", None, "https://api.cloudflare.com/client/v4/ips")
-    google = get_ip_ranges("google", "ipv4Prefix", "https://www.gstatic.com/ipranges/goog.json")
-    amazon = get_ip_ranges("amazon", "ip_prefix", "https://ip-ranges.amazonaws.com/ip-ranges.json")
+    cloudflare_ips = process_cloudflare("https://api.cloudflare.com/client/v4/ips")
+    google_ips = process_google("https://www.gstatic.com/ipranges/goog.json")
+    amazon_us_ips = process_amazon("https://ip-ranges.amazonaws.com/ip-ranges.json", ["us-east-1","us-east-2","us-west-1","us-west-2"])
 
     hcl_data = f'''
 locals {{
-  dns_names = toset(["container-registry.oracle.com", "registry.k8s.io", "quay.io"])
-  worker_egress_ip = {{
+  dns_names = toset(["container-registry.oracle.com", "registry.k8s.io", "quay.io", "cdn.quay.io", "cdn01.quay.io", "cdn02.quay.io", "cdn03.quay.io"])
+  worker_egress_cidr = {{
     "akamai" = ["23.0.0.0/12", "23.32.0.0/11", "104.64.0.0/10"]
     // https://www.cloudflare.com/ips-v4/#
-    "cloudflare" = {json.dumps(cloudflare)}
-    // https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html
-    "amazon" = {json.dumps(amazon)}
+    "cloudflare" = {json.dumps(cloudflare_ips)}
     // https://www.gstatic.com/ipranges/goog.json
-    "google" = {json.dumps(google)}
+    "google" = {json.dumps(google_ips)}
+    // https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html
+    "amazon_us" = {json.dumps(amazon_us_ips)}
   }}
 }}'''
 

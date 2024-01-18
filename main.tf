@@ -136,8 +136,11 @@ resource "oci_containerengine_node_pool" "default_node_pool_details" {
         subnet_id           = module.network.private_subnet_ocid
       }
     }
-    size         = var.oke_worker_pool_size
-    nsg_ids      = [oci_core_network_security_group.oke_workers.id]
+    size = var.oke_worker_pool_size
+
+    nsg_ids      = concat(
+      [oci_core_network_security_group.oke_workers.id],[for nsg in oci_core_network_security_group.oke_workers_lockdown : nsg.id]
+    )
     defined_tags = { (local.tag_OKEclusterNameKey) = local.tag_OKEclusterNameVal }
   }
   node_eviction_node_pool_settings {
@@ -148,6 +151,11 @@ resource "oci_containerengine_node_pool" "default_node_pool_details" {
   node_shape_config {
     memory_in_gbs = var.oke_node_worker_ocpu * 16
     ocpus         = var.oke_node_worker_ocpu
+  }
+  node_pool_cycling_details {
+      is_node_cycling_enabled = true
+      maximum_surge = "50%"
+      maximum_unavailable = "25%"
   }
   node_source_details {
     image_id                = local.oke_selected_worker_image
