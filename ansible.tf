@@ -64,9 +64,9 @@ data "template_file" "tf_vars_database_file" {
   template = file("${local.ansible_home}/roles/database/templates/vars.yaml")
   vars = {
     baas_db  = oci_database_autonomous_database.default_adb.db_name
-    username = "SAAS_ADMIN"
-    #password = oci_database_autonomous_database_saas_admin_user.admin_user.password
-    password = sensitive(format("%s%s", random_password.adb_char.result, random_password.adb_rest.result))
+    username = "ADMIN"
+    password = oci_database_autonomous_database.default_adb.admin_password
+    #password = sensitive(format("%s%s", random_password.adb_char.result, random_password.adb_rest.result))
     service  = format("%s_%s", oci_database_autonomous_database.default_adb.db_name, "TP")
     adb_ocid = oci_database_autonomous_database.default_adb.id
   }

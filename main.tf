@@ -6,6 +6,12 @@ resource "random_pet" "label" {
   length = 1
 }
 
+resource "random_integer" "label_unique" {
+  // Used with random_pet.label for tenancy wide resources
+  min = 1
+  max = 50000
+}
+
 // oci_core
 resource "oci_core_public_ip" "service_lb" {
   count          = var.service_lb_is_public ? 1 : 0
@@ -41,18 +47,19 @@ resource "oci_identity_policy" "worker_node_policies" {
   provider = oci.home_region
 }
 
+// oci_identity_tag
+resource "oci_identity_tag_namespace" "tag_namespace" {
+  compartment_id = local.compartment_ocid
+  description    = format("%s Tag Namespace", local.label_prefix)
+  name           = format("%s-%s", local.label_prefix, random_integer.label_unique.result)
+  provider       = oci.home_region
+}
+
 resource "oci_identity_tag" "identity_tag_OKEclusterName" {
   description      = "OKE Cluster Name"
   name             = format("%s-OKEclusterName", local.label_prefix)
   tag_namespace_id = oci_identity_tag_namespace.tag_namespace.id
   provider         = oci.home_region
-}
-
-resource "oci_identity_tag_namespace" "tag_namespace" {
-  compartment_id = local.compartment_ocid
-  description    = format("%s Tag Namespace", local.label_prefix)
-  name           = local.label_prefix
-  provider       = oci.home_region
 }
 
 // oci_resourcemanager

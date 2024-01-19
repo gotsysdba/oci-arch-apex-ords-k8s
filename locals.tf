@@ -54,7 +54,7 @@ locals {
 
 // Tags
 locals {
-  tag_OKEclusterNameKey = format("%s.%s", local.label_prefix, oci_identity_tag.identity_tag_OKEclusterName.name)
+  tag_OKEclusterNameKey = format("%s.%s", oci_identity_tag_namespace.tag_namespace.name, oci_identity_tag.identity_tag_OKEclusterName.name)
   tag_OKEclusterNameVal = local.oke_cluster_name
 }
 

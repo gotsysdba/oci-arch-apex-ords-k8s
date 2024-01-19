@@ -10,7 +10,7 @@
 
 - name: Set Active Applications
   ansible.builtin.set_fact:
-    active_applications: "{{ active_applications | default([]) + ['common', 'database'] }}"
+    active_applications: "['common', 'database', 'default']"
 
 - name: Set oci_terraform_dir
   ansible.builtin.set_fact:
