@@ -9,6 +9,7 @@
   gather_facts: false
   roles:
     - { role: kubernetes, tags: [always] }
+    - { role: registry, tags: [always] }
     - { role: software, tags: [always] }
   environment: "{{ common_kubectl_config if common_is_cloud_run else (common_oci_env | d([])) | combine(common_kubectl_config) }}"
 

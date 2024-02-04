@@ -34,6 +34,7 @@ variableGroups:
       - oke_version
       - service_lb_ingress
       - byo_auth_token
+      - worker_nsg_lockdown
     visible: false
 
   #########################################################################
@@ -198,7 +199,7 @@ variables:
     minimum: 1
     maximum: 80
     multipleOf: 1
-    default: 3
+    default: 2
 
   oke_node_worker_shape:
     type: enum
@@ -409,10 +410,16 @@ outputGroups:
       - kubeconfig_cmd
     visible: true
 
+  - title: "Access the Application"
+    outputs:
+      - ords_uri
+    visible: true
+
   - title: "Autonomous Database"
     outputs:
       - adb_name
       - adb_ip
+      - adb_admin_password
     visible: true
 ###########################################################################
 outputs:
@@ -423,6 +430,11 @@ outputs:
 
   adb_name:
     title: "Autonomous Database Name"
+    type: string
+    visible: true
+
+  adb_admin_password:
+    title: "Autonomous Database ADMIN Password"
     type: string
     visible: true
 

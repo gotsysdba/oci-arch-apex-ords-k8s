@@ -6,6 +6,10 @@ locals {
   ansible_home = "${path.root}/ansible"
   orm_pe       = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
   reserved_ip  = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
+  auth_token    = var.byo_auth_token != "" ? var.byo_auth_token : oci_identity_auth_token.identity_auth_token[0].token
+  registry_url  = lower(format("%s.ocir.io/%s", local.image_region, data.oci_objectstorage_namespace.objectstorage_namespace.namespace))
+  registry_user = lower(format("%s/%s", data.oci_objectstorage_namespace.objectstorage_namespace.namespace, data.oci_identity_user.identity_user.name))
+  registry_auth = base64encode(format("%s:%s", local.registry_user, local.auth_token))
 }
 
 ########################################################################
@@ -77,9 +81,40 @@ resource "local_sensitive_file" "tf_vars_database_file" {
   file_permission = 0600
 }
 
+// Image Container Registry
+data "template_file" "tf_vars_registry_file" {
+  template = file("${local.ansible_home}/roles/registry/templates/vars.yaml")
+  vars = {
+    registry_username       = local.registry_user
+    registry_password       = local.auth_token
+    registry_push_url       = format("%s/%s", local.registry_url, local.label_prefix)
+    registry_pull_url       = format("%s/%s", local.registry_url, local.label_prefix)
+    registry_push_auths_url = local.registry_url
+    registry_pull_auths_url = local.registry_url
+    registry_auths_auth     = local.registry_auth
+  }
+}
+
+resource "local_sensitive_file" "tf_vars_registry_file" {
+  content         = data.template_file.tf_vars_registry_file.rendered
+  filename        = "${local.ansible_home}/roles/registry/vars/main.yaml"
+  file_permission = 0600
+}
+
 ########################################################################
 # Ansible Provisioners - Apply
 ########################################################################
+resource "null_resource" "ansible_images_build" {
+  count = var.run_ansible ? 1 : 0
+  provisioner "local-exec" {
+    command = "ansible-playbook ${local.ansible_home}/images_build.yaml"
+  }
+  depends_on = [
+    local_sensitive_file.tf_vars_common_file,
+    local_sensitive_file.tf_vars_registry_file,
+  ]
+}
+
 resource "null_resource" "ansible_k8s_apply" {
   count = var.run_ansible ? 1 : 0
   triggers = {
@@ -89,6 +124,8 @@ resource "null_resource" "ansible_k8s_apply" {
     command = "ansible-playbook ${local.ansible_home}/k8s_apply.yaml -t full"
   }
   depends_on = [
+    null_resource.ansible_images_build,
+    local_sensitive_file.tf_vars_common_file,
     local_sensitive_file.tf_vars_database_file,
     local_sensitive_file.tf_vars_oci_file,
     oci_identity_policy.worker_node_policies,
@@ -125,6 +162,7 @@ resource "null_resource" "ansible_k8s_destroy" {
   # Only execute when deleting OKE, and run before the bucket/OKE deletion
   # local_sensitive_file deps to avoid deletion of files created by self.triggers (on-prem)
   depends_on = [
+    null_resource.ansible_images_build,
     local_sensitive_file.tf_vars_oci_file,
     local_sensitive_file.tf_vars_common_file,
     oci_resourcemanager_private_endpoint.orm_pe,

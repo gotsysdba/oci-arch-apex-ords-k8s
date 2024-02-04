@@ -4,8 +4,8 @@ namespace: ingress-nginx
 labels:
   - pairs:
       app.kubernetes.io/part-of: common
-      app.kubernetes.io/version: 1.8.1
-      helm-version: 4.7.1
+      app.kubernetes.io/version: 1.9.6
+      helm-version: 4.9.1
 resources:
   - namespace--ingress-nginx.yaml
   - ../../../../secrets/tls-certificate
@@ -13,8 +13,15 @@ resources:
 helmCharts:
   - name: ingress-nginx
     repo: https://kubernetes.github.io/ingress-nginx
-    version: 4.7.1
+    version: 4.9.1
     releaseName: ingress-nginx
     namespace: ingress-nginx
     includeCRDs: true
     valuesFile: values.yaml
+images:
+  - name: "registry.k8s.io/ingress-nginx/controller"
+    newTag: "v1.9.6"
+    newName: "{{ registry_pull_url }}/controller"
+  - name: "registry.k8s.io/ingress-nginx/kube-webhook-certgen"
+    newTag: "v20231226-1a7112e06"
+    newName: "{{ registry_pull_url }}/kube-webhook-certgen"

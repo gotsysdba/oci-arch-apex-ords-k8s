@@ -1,0 +1,20 @@
+# push v pull - in most cases these are the same but where they _can_ differ
+# is when the registry is in the k8.  The push to the pod using external name,
+# pull for other pods to pull from (k8 internal service name)
+##
+# auths_url - this _can_ differ from registry urls primarily in cloud to account
+# for compartments in the registry url
+##
+# As they are the same registry, username/password will be identical
+registry_username: "${registry_username}"
+registry_password: !unsafe  "${registry_password}"
+registry_push_url: "${registry_push_url}"
+registry_push_auth:
+  auths:
+    ${registry_push_auths_url}:
+      auth: "${registry_auths_auth}"
+registry_pull_url: "${registry_pull_url}"
+registry_pull_auth:
+  auths:
+    ${registry_pull_auths_url}:
+      auth: "${registry_auths_auth}"

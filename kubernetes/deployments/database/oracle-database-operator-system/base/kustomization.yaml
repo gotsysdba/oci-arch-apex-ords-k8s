@@ -9,3 +9,6 @@ labels:
     includeTemplates: true 
 resources:
   - oracle-database-operator.yaml
+images:
+  - name: "container-registry.oracle.com/database/operator"
+    newName: "{{ registry_pull_url }}/operator"

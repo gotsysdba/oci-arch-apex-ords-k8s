@@ -21,3 +21,14 @@ output "adb_ip" {
   description = "Autonomous Database IP Address"
   value       = var.adb_networking == "PRIVATE_ENDPOINT_ACCESS" ? oci_database_autonomous_database.default_adb.private_endpoint_ip : "Secured Access"
 }
+
+output "adb_admin_password" {
+  description = "Autonomous Database ADMIN Password"
+  value       = oci_database_autonomous_database.default_adb.admin_password
+  sensitive   = true
+}
+
+output "ords_uri" {
+  description = "Public Access."
+  value       = format("https://%s", oci_core_public_ip.service_lb[0].ip_address)
+}

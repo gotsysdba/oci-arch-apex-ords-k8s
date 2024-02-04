@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: John Lathouwers
+  description: Container Registry Tasks
+  company: Oracle Corporation
+  license: "UPL-1.0"
+  min_ansible_version: "2.1"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+  galaxy_tags: []
+dependencies:
+  - role: common

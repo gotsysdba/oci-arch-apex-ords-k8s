@@ -57,16 +57,6 @@ variable "label_prefix" {
   }
 }
 
-variable "edition" {
-  description = "Choose the installation edition."
-  type        = string
-  default     = "COMMUNITY"
-  validation {
-    condition     = contains(["COMMUNITY", "STANDARD"], var.edition)
-    error_message = "Must be either COMMUNITY or STANDARD."
-  }
-}
-
 // OKE Cluster
 variable "oke_version" {
   description = "The version of Kubernetes to install into the cluster masters."
@@ -93,7 +83,7 @@ variable "oke_api_endpoint_allowed_cidrs" {
 variable "oke_worker_pool_size" {
   description = "Number of Workers in the default Node Pool."
   type        = number
-  default     = 3
+  default     = 2
 }
 
 variable "oke_node_worker_shape" {
@@ -129,7 +119,7 @@ variable "service_lb_min_shape" {
 variable "service_lb_max_shape" {
   description = "Bandwidth in Mbps that determines the max bandwidth (ingress plus egress) that the load balancer can achieve."
   type        = number
-  default     = 100
+  default     = 10
 }
 
 variable "service_lb_allowed_cidrs" {
@@ -272,11 +262,6 @@ variable "adb_create_bucket" {
 }
 
 // Miscellaneous
-variable "enable_ocir_scanning" {
-  type    = bool
-  default = false
-}
-
 variable "orm_install" {
   description = "Provisioning via Oracle Resource Manager"
   type        = bool
@@ -320,4 +305,10 @@ variable "worker_nsg_lockdown" {
   description = "Allow workers full access to internet?"
   type        = bool
   default     = false
+}
+
+variable "byo_auth_token" {
+  description = "Bring Your Own Authorization Token"
+  type        = string
+  default     = ""
 }

@@ -1,0 +1,29 @@
+---
+- name: Create secrets/registry Kustomization Directory
+  ansible.builtin.file:
+    path: "{{ kubernetes_dir }}/secrets/registry/files"
+    state: directory
+    mode: "0700"
+
+- name: Create Registry Push Authentication File
+  when: registry_push_auth is defined
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ kubernetes_dir }}/secrets/registry/files/registry_push_auth"
+    content: "{{ registry_push_auth | to_json }}"
+
+- name: Create Registry Pull Authentication File
+  when: registry_pull_url is defined
+  ansible.builtin.copy:
+    mode: "0600"
+    dest: "{{ kubernetes_dir }}/secrets/registry/files/registry_pull_auth"
+    content: "{{ registry_pull_auth | to_json }}"
+
+- name: Create registry kustomization.yaml
+  when: registry_pull_auth is defined and registry_push_auth is defined
+  ansible.builtin.template:
+    mode: "0600"
+    src: kustomize_secretGenerator.yaml
+    dest: "{{ kubernetes_dir }}/secrets/registry/kustomization.yaml"
+    variable_start_string: "<~<~"
+    variable_end_string: "~>~>"

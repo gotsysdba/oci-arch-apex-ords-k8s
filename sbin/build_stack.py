@@ -1,5 +1,6 @@
-import requests, json, shutil, tempfile, os, sys, glob
+import requests, json, shutil, tempfile, os, sys, glob, argparse
 max_stack_size_mb = 11
+build_type = ['livelab', 'poc']
 
 def exclusion_files():
     """Returns a callable which will exclude files from being copied."""
@@ -13,7 +14,30 @@ def exclusion_files():
     )
     return shutil.ignore_patterns(*patterns)
 
-def build_stack(src_dir, dst_dir):
+def write_locals_restricted(build_dir):
+    cloudflare_ips = process_cloudflare("https://api.cloudflare.com/client/v4/ips")
+    google_ips = process_google("https://www.gstatic.com/ipranges/goog.json")
+    amazon_us_ips = process_amazon("https://ip-ranges.amazonaws.com/ip-ranges.json", ["us-east-1","us-east-2","us-west-1","us-west-2"])
+
+    hcl_data = f'''
+locals {{
+  dns_names = toset(["registry.k8s.io", "quay.io", "cdn.quay.io", "cdn01.quay.io", "cdn02.quay.io", "cdn03.quay.io"])
+  worker_egress_cidr = {{
+    // https://techdocs.akamai.com/origin-ip-acl/docs/update-your-origin-server (manual)
+    "akamai" = ["2.16.0.0/13","23.0.0.0/12","23.192.0.0/11","23.32.0.0/11","23.64.0.0/14","23.72.0.0/13","69.192.0.0/16","72.246.0.0/15","88.221.0.0/16","92.122.0.0/15","95.100.0.0/15","96.16.0.0/15","96.6.0.0/15","104.64.0.0/10","118.214.0.0/16","173.222.0.0/15","184.24.0.0/13","184.50.0.0/15","184.84.0.0/14"]
+    // https://www.cloudflare.com/ips-v4/#
+    "cloudflare" = {json.dumps(cloudflare_ips)}
+    // https://www.gstatic.com/ipranges/goog.json
+    "google" = {json.dumps(google_ips)}
+    // https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html
+    "amazon_us" = {json.dumps(amazon_us_ips)}
+  }}
+}}'''
+    with open(os.path.join(build_dir,'locals_restricted.tf'), 'w') as file:
+        # Write the variable value to the file
+        file.write(hcl_data)
+
+def build_stack(build_type, src_dir, dst_dir):
     """Perform file modifications and build stack zip file
     """
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -46,8 +70,22 @@ def build_stack(src_dir, dst_dir):
 
         # All Assets Moved, rm dir
         shutil.rmtree(os.path.join(build_dir, 'assets'))
+
+        # default terraform.tfvars based on build_type
+        with open(os.path.join(build_dir,'terraform.auto.tfvars'), 'w') as file:
+            file.write('orm_install = true\n')
+            if build_type == 'livelab':
+                file.write('worker_nsg_lockdown = true\n')
+                file.write('run_ansible = false\n')
+                file.write('byo_vcn = true\n')
+                file.write('oke_node_worker_shape = "VM.Standard3.Flex"\n')
+
+        # Write Restricted CIDRs
+        if build_type == 'livelab':
+            write_locals_restricted(build_dir)
+
         # Create the Stack
-        stack_name = os.path.join(dst_dir, 'oci-arch-apex-ords-k8s')
+        stack_name = os.path.join(dst_dir, 'oci-arch-apex-ords-k8s-'+build_type)
         print(f'Creating {stack_name}.zip from {build_dir}')
         shutil.make_archive(stack_name, 'zip', build_dir)
 
@@ -90,32 +128,13 @@ def process_amazon(url, key=[]):
 # MAIN
 ##########################################################################
 def main(args=None):
+    parser = argparse.ArgumentParser(description='Stack Builder')
+    parser.add_argument('-t', required=True, choices=build_type,
+                        dest='build_type', help='Build Type')
+    args = parser.parse_args(args)
+
     project_dir = os.path.dirname(os.path.abspath(os.path.join(sys.argv[0],'../')))
     print(f'Project Directory: {project_dir}')
-
-    cloudflare_ips = process_cloudflare("https://api.cloudflare.com/client/v4/ips")
-    google_ips = process_google("https://www.gstatic.com/ipranges/goog.json")
-    amazon_us_ips = process_amazon("https://ip-ranges.amazonaws.com/ip-ranges.json", ["us-east-1","us-east-2","us-west-1","us-west-2"])
-
-    hcl_data = f'''
-    locals {{
-    dns_names = toset(["registry.k8s.io", "quay.io", "cdn.quay.io", "cdn01.quay.io", "cdn02.quay.io", "cdn03.quay.io"])
-    worker_egress_cidr = {{
-        // https://techdocs.akamai.com/origin-ip-acl/docs/update-your-origin-server (manual)
-        "akamai" = ["2.16.0.0/13","23.0.0.0/12","23.192.0.0/11","23.32.0.0/11","23.64.0.0/14","23.72.0.0/13","69.192.0.0/16","72.246.0.0/15","88.221.0.0/16","92.122.0.0/15","95.100.0.0/15","96.16.0.0/15","96.6.0.0/15","104.64.0.0/10","118.214.0.0/16","173.222.0.0/15","184.24.0.0/13","184.50.0.0/15","184.84.0.0/14"]
-        // https://www.cloudflare.com/ips-v4/#
-        "cloudflare" = {json.dumps(cloudflare_ips)}
-        // https://www.gstatic.com/ipranges/goog.json
-        "google" = {json.dumps(google_ips)}
-        // https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html
-        "amazon_us" = {json.dumps(amazon_us_ips)}
-    }}
-    }}'''
-
-    with open(os.path.join(project_dir,'locals_restricted.tf'), 'w') as file:
-        # Write the variable value to the file
-        file.write(hcl_data)
-
 
     stack_dir = os.path.join(project_dir, 'stack')
     try:
@@ -125,7 +144,7 @@ def main(args=None):
 
     print(f'Building Stack')
     # Build the Stack
-    stack_file = build_stack(project_dir, stack_dir)
+    stack_file = build_stack(args.build_type, project_dir, stack_dir)
     print(f'Stack Built: {stack_file}')
 
 if __name__ == "__main__":

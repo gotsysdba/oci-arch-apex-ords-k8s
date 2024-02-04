@@ -4,7 +4,15 @@ kind: Kustomization
 labels:
   - pairs:
       app.kubernetes.io/part-of: database
-      app.kubernetes.io/version: "1.12.3"
+      app.kubernetes.io/version: "1.14.1"
 resources:
   - cert-manager.yaml
   # - clusterissuer--letsencrypt.yaml
+images:
+  - name: "quay.io/jetstack/cert-manager-cainjector"
+    newName: "{{ registry_pull_url }}/cert-manager-cainjector"
+  - name: "quay.io/jetstack/cert-manager-controller"
+    newName: "{{ registry_pull_url }}/cert-manager-controller"
+  - name: "quay.io/jetstack/cert-manager-webhook"
+    newName: "{{ registry_pull_url }}/cert-manager-webhook"
+

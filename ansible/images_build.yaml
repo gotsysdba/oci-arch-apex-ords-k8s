@@ -1,0 +1,45 @@
+#
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+#
+---
+- name: Pull Images
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - { role: registry }
+
+  tasks:
+    - name: Create XDG_RUNTIME_DIR directory
+      ansible.builtin.file:
+        mode: "0755"
+        path: "{{ playbook_dir }}/stage/containers"
+        state: directory
+
+    - name: Create Registry Authentication Files
+      when: registry_push_auth is defined
+      ansible.builtin.copy:
+        mode: "0600"
+        dest: "{{ playbook_dir }}/stage/containers/config.json"
+        content: "{{ registry_push_auth | to_json }}"
+
+    - name: "Pulling Image"
+      community.docker.docker_image:
+        name: "{{ item }}"
+        source: pull
+        repository: "{{ registry_push_url }}/{{ item | basename }}"
+        push: yes
+        timeout: 360
+      environment:
+        DOCKER_CONFIG : "{{ playbook_dir }}/stage/containers"
+      loop:
+        - quay.io/jetstack/cert-manager-cainjector:v1.14.1
+        - quay.io/jetstack/cert-manager-controller:v1.14.1
+        - quay.io/jetstack/cert-manager-webhook:v1.14.1
+        - container-registry.oracle.com/database/operator:1.0.0
+        - registry.k8s.io/ingress-nginx/controller:v1.9.6
+        - registry.k8s.io/ingress-nginx/kube-webhook-certgen:v20231226-1a7112e06
+        - registry.k8s.io/metrics-server/metrics-server:v0.6.4
+        - container-registry.oracle.com/database/sqlcl:23.4.0
+        - container-registry.oracle.com/database/ords:23.4.0

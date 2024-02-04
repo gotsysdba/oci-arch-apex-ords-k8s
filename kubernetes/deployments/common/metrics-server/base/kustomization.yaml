@@ -18,3 +18,7 @@ helmCharts:
     namespace: metrics-server
     includeCRDs: true
     valuesFile: values.yaml
+images:
+  - name: "registry.k8s.io/metrics-server/metrics-server"
+    newName: "{{ registry_pull_url }}/metrics-server"
+    newTag: v0.6.4
