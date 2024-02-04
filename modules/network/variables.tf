@@ -9,6 +9,11 @@ variable "label_prefix" {
   type = string
 }
 
+variable "vcn_cidr" {
+  type    = string
+  default = "10.42.0.0/16"
+}
+
 variable "byo_vcn" {
   type = bool
 }

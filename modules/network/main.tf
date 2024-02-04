@@ -13,7 +13,7 @@ terraform {
 resource "oci_core_vcn" "vcn" {
   count          = var.byo_vcn ? 0 : 1
   compartment_id = var.compartment_id
-  cidr_blocks    = ["10.0.0.0/16"]
+  cidr_blocks    = [var.vcn_cidr]
   display_name   = format("%s-vcn", var.label_prefix)
   dns_label      = var.label_prefix
 }
@@ -83,6 +83,9 @@ resource "oci_core_route_table" "public_route_table" {
     destination_type  = "CIDR_BLOCK"
     network_entity_id = try(oci_core_internet_gateway.igw[0].id, data.oci_core_internet_gateways.igw.gateways[0].id)
   }
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "oci_core_route_table" "private_route_table" {
@@ -100,6 +103,9 @@ resource "oci_core_route_table" "private_route_table" {
     destination       = data.oci_core_services.core_services.services.0.cidr_block
     destination_type  = "SERVICE_CIDR_BLOCK"
     network_entity_id = try(oci_core_service_gateway.sgw[0].id, data.oci_core_service_gateways.sgw.service_gateways[0].id)
+  }
+  lifecycle {
+    ignore_changes = all
   }
 }
 
