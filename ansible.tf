@@ -3,9 +3,9 @@
 
 locals {
   # ansible_home is rewritten on a build
-  ansible_home = "${path.root}/ansible"
-  orm_pe       = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
-  reserved_ip  = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
+  ansible_home  = "${path.root}/ansible"
+  orm_pe        = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
+  reserved_ip   = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
   auth_token    = var.byo_auth_token != "" ? var.byo_auth_token : oci_identity_auth_token.identity_auth_token[0].token
   registry_url  = lower(format("%s.ocir.io/%s", local.image_region, data.oci_objectstorage_namespace.objectstorage_namespace.namespace))
   registry_user = lower(format("%s/%s", data.oci_objectstorage_namespace.objectstorage_namespace.namespace, data.oci_identity_user.identity_user.name))

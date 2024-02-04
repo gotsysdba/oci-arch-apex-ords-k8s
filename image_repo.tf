@@ -15,14 +15,14 @@ variable "container_repositories" {
 }
 
 resource "oci_identity_auth_token" "identity_auth_token" {
-  count       = var.byo_auth_token == "" ? 1 : 0
+  count       = var.worker_nsg_lockdown ? var.byo_auth_token == "" ? 1 : 0 : 0
   description = format("%s-auth-token", local.label_prefix)
   user_id     = local.user_ocid
   provider    = oci.home_region
 }
 
 resource "oci_artifacts_container_repository" "artifacts_container_repository" {
-  for_each       = toset(var.container_repositories)
+  for_each       = var.worker_nsg_lockdown ? toset(var.container_repositories) : []
   compartment_id = local.compartment_ocid
   display_name   = lower(format("%s/%s", local.label_prefix, each.value))
   is_immutable   = false

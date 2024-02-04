@@ -9,6 +9,7 @@
   gather_facts: false
   roles:
     - { role: registry }
+    - { role: software }
 
   tasks:
     - name: Create XDG_RUNTIME_DIR directory

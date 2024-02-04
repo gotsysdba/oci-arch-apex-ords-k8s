@@ -1,3 +1,4 @@
+#!/bin/env python3
 import requests, json, shutil, tempfile, os, sys, glob, argparse
 max_stack_size_mb = 11
 build_type = ['livelab', 'poc']
@@ -74,15 +75,18 @@ def build_stack(build_type, src_dir, dst_dir):
         # default terraform.tfvars based on build_type
         with open(os.path.join(build_dir,'terraform.auto.tfvars'), 'w') as file:
             file.write('orm_install = true\n')
+            file.write('adb_compute_model = "OCPU"\n')
+            file.write('service_lb_max_shape = 10\n')
             if build_type == 'livelab':
                 file.write('worker_nsg_lockdown = true\n')
-                file.write('run_ansible = false\n')
                 file.write('byo_vcn = true\n')
                 file.write('oke_node_worker_shape = "VM.Standard3.Flex"\n')
 
         # Write Restricted CIDRs
         if build_type == 'livelab':
-            write_locals_restricted(build_dir)
+            #write_locals_restricted(build_dir)
+            shutil.rmtree(os.path.join(build_dir, 'kubernetes', 'deployments', 'database'))
+            shutil.rmtree(os.path.join(build_dir, 'kubernetes', 'deployments', 'default'))
 
         # Create the Stack
         stack_name = os.path.join(dst_dir, 'oci-arch-apex-ords-k8s-'+build_type)

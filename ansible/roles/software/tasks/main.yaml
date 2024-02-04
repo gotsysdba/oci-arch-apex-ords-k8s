@@ -71,3 +71,9 @@
   ansible.builtin.pip:
     name: kubernetes
     extra_args: --user
+
+- name: Install Kubernetes Python Package
+  when: common_is_cloud_run
+  ansible.builtin.pip:
+    name: docker
+    extra_args: --user
