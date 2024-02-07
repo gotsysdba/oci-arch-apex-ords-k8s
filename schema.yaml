@@ -18,7 +18,7 @@ variableGroups:
   #########################################################################
   - title: "Default Hidden"
     variables:
-      - tenancy_ocid
+      - ociTenancyOcid
       - region
       - user_ocid
       - current_user_ocid

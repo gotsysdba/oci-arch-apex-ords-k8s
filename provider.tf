@@ -11,7 +11,7 @@ terraform {
 }
 
 data "oci_identity_region_subscriptions" "home_region" {
-  tenancy_id = var.tenancy_ocid
+  tenancy_id = var.ociTenancyOcid
   filter {
     name   = "is_home_region"
     values = ["true"]
@@ -25,7 +25,7 @@ locals {
 
 provider "oci" {
   region           = var.region
-  tenancy_ocid     = var.tenancy_ocid
+  tenancy_ocid     = var.ociTenancyOcid
   user_ocid        = local.user_ocid
   fingerprint      = var.fingerprint
   private_key_path = var.private_key_path
@@ -34,7 +34,7 @@ provider "oci" {
 
 provider "oci" {
   region           = local.home_region
-  tenancy_ocid     = var.tenancy_ocid
+  tenancy_ocid     = var.ociTenancyOcid
   user_ocid        = local.user_ocid
   fingerprint      = var.fingerprint
   private_key_path = var.private_key_path

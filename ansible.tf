@@ -21,7 +21,7 @@ locals {
 data "template_file" "tf_vars_common_file" {
   template = file("${local.ansible_home}/roles/common/templates/vars.yaml")
   vars = {
-    oci_tenancy_ocid     = var.tenancy_ocid
+    oci_tenancy_ocid     = var.ociTenancyOcid
     oci_user_ocid        = local.user_ocid
     oci_fingerprint      = var.fingerprint
     oci_region           = var.region

@@ -68,7 +68,7 @@ resource "oci_objectstorage_bucket" "adb" {
 
 resource "oci_identity_dynamic_group" "adb_dynamic_group" {
   count          = var.adb_create_bucket ? 1 : 0
-  compartment_id = var.tenancy_ocid
+  compartment_id = var.ociTenancyOcid
   name           = format("%s-adb-dyngrp", local.label_prefix)
   description    = format("%s Dynamic Group - ADB", local.label_prefix)
   matching_rule  = format("resource.id='%s'", oci_database_autonomous_database.default_adb.id)

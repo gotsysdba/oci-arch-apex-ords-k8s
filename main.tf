@@ -26,7 +26,7 @@ resource "oci_core_public_ip" "service_lb" {
 }
 
 resource "oci_identity_dynamic_group" "node_dynamic_group" {
-  compartment_id = var.tenancy_ocid
+  compartment_id = var.ociTenancyOcid
   name           = format("%s-worker-nodes-dyngrp", local.label_prefix)
   description    = format("%s Dynamic Group - OKE Nodes", local.label_prefix)
   matching_rule = format("All {instance.compartment.id='%s',tag.%s.value='%s'}",

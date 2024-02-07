@@ -1,7 +1,7 @@
 # Copyright © 2023, Oracle and/or its affiliates.
 # All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
 
-variable "tenancy_ocid" {
+variable "ociTenancyOcid" {
   description = "The Tenancy ID of the OCI Cloud Account in which to create the resources."
   type        = string
 }

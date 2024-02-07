@@ -3,7 +3,7 @@
 
 // House-Keeping
 locals {
-  compartment_ocid = var.compartment_ocid != "" ? var.compartment_ocid : var.tenancy_ocid
+  compartment_ocid = var.compartment_ocid != "" ? var.compartment_ocid : var.ociTenancyOcid
   label_prefix     = var.label_prefix != "" ? lower(var.label_prefix) : lower(random_pet.label.id)
 }
 
