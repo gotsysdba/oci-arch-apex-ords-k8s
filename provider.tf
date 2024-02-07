@@ -20,7 +20,7 @@ data "oci_identity_region_subscriptions" "home_region" {
 
 locals {
   home_region = data.oci_identity_region_subscriptions.home_region.region_subscriptions[0].region_name
-  user_ocid   = var.user_ocid != "" ? var.user_ocid : var.current_user_ocid
+  user_ocid   = var.ociUserOcid != "" ? var.ociUserOcid : var.current_user_ocid
 }
 
 provider "oci" {

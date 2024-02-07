@@ -16,7 +16,7 @@ variable "region" {
   type        = string
 }
 
-variable "user_ocid" {
+variable "ociUserOcid" {
   description = "The ID of the User that terraform will use to create the resources."
   type        = string
   default     = ""

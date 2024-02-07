@@ -20,7 +20,7 @@ variableGroups:
     variables:
       - ociTenancyOcid
       - region
-      - user_ocid
+      - ociUserOcid
       - current_user_ocid
       - fingerprint
       - private_key_path
