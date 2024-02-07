@@ -19,7 +19,7 @@ variableGroups:
   - title: "Default Hidden"
     variables:
       - ociTenancyOcid
-      - region
+      - ociRegionIdentifier
       - ociUserOcid
       - current_user_ocid
       - fingerprint

@@ -24,7 +24,7 @@ locals {
 }
 
 provider "oci" {
-  region           = var.region
+  region           = var.ociRegionIdentifier
   tenancy_ocid     = var.ociTenancyOcid
   user_ocid        = local.user_ocid
   fingerprint      = var.fingerprint

@@ -11,7 +11,7 @@ variable "ociCompartmentOcid" {
   type        = string
 }
 
-variable "region" {
+variable "ociRegionIdentifier" {
   description = "The OCI Region where resources will be created."
   type        = string
 }

@@ -24,7 +24,7 @@ data "template_file" "tf_vars_common_file" {
     oci_tenancy_ocid     = var.ociTenancyOcid
     oci_user_ocid        = local.user_ocid
     oci_fingerprint      = var.fingerprint
-    oci_region           = var.region
+    oci_region           = var.ociRegionIdentifier
     oci_compartment_ocid = local.compartment_ocid
   }
 }

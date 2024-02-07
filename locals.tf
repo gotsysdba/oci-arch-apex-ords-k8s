@@ -65,7 +65,7 @@ locals {
   }
   image_region = lookup(
     local.region_map,
-    var.region
+    var.ociRegionIdentifier
   )
 }
 
