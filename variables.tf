@@ -34,14 +34,14 @@ variable "fingerprint" {
   default     = ""
 }
 
-variable "private_key" {
-  description = "The contents of the private key file to use with OCI API. This takes precedence over private_key_path if both are specified in the provider."
+variable "resUserPublicKey" {
+  description = "The contents of the private key file to use with OCI API. This takes precedence over resPathUserPublicKey if both are specified in the provider."
   sensitive   = true
   type        = string
   default     = ""
 }
 
-variable "private_key_path" {
+variable "resPathUserPublicKey" {
   description = "The path to the OCI API private key."
   type        = string
   default     = ""

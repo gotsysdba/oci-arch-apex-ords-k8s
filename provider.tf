@@ -28,8 +28,8 @@ provider "oci" {
   tenancy_ocid     = var.ociTenancyOcid
   user_ocid        = local.user_ocid
   fingerprint      = var.fingerprint
-  private_key_path = var.private_key_path
-  private_key      = var.private_key
+  private_key_path = var.resPathUserPublicKey
+  private_key      = var.resUserPublicKey
 }
 
 provider "oci" {
@@ -37,7 +37,7 @@ provider "oci" {
   tenancy_ocid     = var.ociTenancyOcid
   user_ocid        = local.user_ocid
   fingerprint      = var.fingerprint
-  private_key_path = var.private_key_path
-  private_key      = var.private_key
+  private_key_path = var.resPathUserPublicKey
+  private_key      = var.resUserPublicKey
   alias            = "home_region"
 }

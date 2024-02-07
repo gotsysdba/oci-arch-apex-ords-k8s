@@ -23,8 +23,8 @@ variableGroups:
       - ociUserOcid
       - current_user_ocid
       - fingerprint
-      - private_key_path
-      - private_key
+      - resPathUserPublicKey
+      - resUserPublicKey
     visible: false
 
   - title: "Hidden (Defaults)"
