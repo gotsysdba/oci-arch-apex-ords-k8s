@@ -283,7 +283,7 @@ variable "byo_vcn" {
   default     = false
 }
 
-variable "byo_vcn_ocid" {
+variable "ociVcnOcid" {
   description = "The OCID of the BYO VCN resource"
   type        = string
   default     = ""

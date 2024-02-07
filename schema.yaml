@@ -53,7 +53,7 @@ variableGroups:
     variables:
       - byo_vcn
       - byo_vcn_compartment
-      - byo_vcn_ocid
+      - ociVcnOcid
       - byo_private_subnet_ocid
       - byo_public_subnet_ocid
     visible: true
@@ -132,7 +132,7 @@ variables:
     default: ociCompartmentOcid
     visible: byo_vcn
 
-  byo_vcn_ocid:
+  ociVcnOcid:
     type: oci:core:vcn:id
     title: "Virtual Cloud Network (VCN)"
     description: "BYO VCN Resource"
@@ -148,7 +148,7 @@ variables:
     description: "BYO Public Subnet - Leave Blank to Create"
     dependsOn:
       compartmentId: byo_vcn_compartment
-      vcnId: byo_vcn_ocid
+      vcnId: ociVcnOcid
       hidePublicSubnet: false
       hidePrivateSubnet: true
     required: false
@@ -161,7 +161,7 @@ variables:
     description: "BYO Private Subnet - Leave Blank to Create"
     dependsOn:
       compartmentId: byo_vcn_compartment
-      vcnId: byo_vcn_ocid
+      vcnId: ociVcnOcid
       hidePublicSubnet: true
       hidePrivateSubnet: false
     required: false
