@@ -6,7 +6,7 @@ variable "ociTenancyOcid" {
   type        = string
 }
 
-variable "compartment_ocid" {
+variable "ociCompartmentOcid" {
   description = "The compartment in which to create OCI Resources."
   type        = string
 }

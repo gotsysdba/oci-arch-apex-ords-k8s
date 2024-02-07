@@ -42,7 +42,7 @@ variableGroups:
   #########################################################################
   - title: "General Configuration"
     variables:
-      - compartment_ocid
+      - ociCompartmentOcid
       - label_prefix
     visible: true
 
@@ -106,7 +106,7 @@ variableGroups:
 ###########################################################################
 variables:
 
-  compartment_ocid:
+  ociCompartmentOcid:
     type: oci:identity:compartment:id
     title: "Compartment"
     required: true
@@ -129,7 +129,7 @@ variables:
     description: "BYO VCN Compartment"
     type: oci:identity:compartment:id
     required: true
-    default: compartment_ocid
+    default: ociCompartmentOcid
     visible: byo_vcn
 
   byo_vcn_ocid:
