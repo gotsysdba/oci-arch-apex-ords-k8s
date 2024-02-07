@@ -33,7 +33,7 @@ kubernetes/secrets
 **/terraform.tfstate*
 **/backend.conf
 **/backend.tf
-!**/*.auto.tfvars
+**/*.auto.tfvars
 
 ##############################################################################
 # Dev Env
