@@ -9,7 +9,6 @@
   when: architecture is not defined
 
 - name: Helm Install
-  when: not common_is_cloud_run
   block:
     - name: Create Helm Stage Directory
       ansible.builtin.file:
@@ -31,9 +30,9 @@
       retries: 5
       delay: 30
 
-- name: Set helm_bin
-  ansible.builtin.set_fact:
-    helm_bin: "{% if not common_is_cloud_run %}{{ playbook_dir }}/stage/helm/helm{% else %}helm{% endif %}"
+    - name: Set helm_bin
+      ansible.builtin.set_fact:
+        helm_bin: "{{ playbook_dir }}/stage/helm/helm"
 
 - name: Install Kubectl
   when: not common_is_cloud_run
@@ -72,7 +71,7 @@
     name: kubernetes
     extra_args: --user
 
-- name: Install Kubernetes Python Package
+- name: Install Docker Python Package
   when: common_is_cloud_run
   ansible.builtin.pip:
     name: docker

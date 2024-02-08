@@ -6,21 +6,6 @@ data "oci_core_vcn" "vcn" {
   depends_on = [oci_core_vcn.vcn[0]]
 }
 
-data "oci_core_internet_gateways" "igw" {
-  compartment_id = data.oci_core_vcn.vcn.compartment_id
-  vcn_id         = data.oci_core_vcn.vcn.id
-}
-
-data "oci_core_nat_gateways" "ngw" {
-  compartment_id = data.oci_core_vcn.vcn.compartment_id
-  vcn_id         = data.oci_core_vcn.vcn.id
-}
-
-data "oci_core_service_gateways" "sgw" {
-  compartment_id = data.oci_core_vcn.vcn.compartment_id
-  vcn_id         = data.oci_core_vcn.vcn.id
-}
-
 data "oci_core_services" "core_services" {
   filter {
     name   = "name"
