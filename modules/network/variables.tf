@@ -23,17 +23,9 @@ variable "byo_vcn_ocid" {
   default = ""
 }
 
-variable "create_public_subnet" {
-  type = bool
-}
-
 variable "byo_public_subnet_ocid" {
   type    = string
   default = ""
-}
-
-variable "create_private_subnet" {
-  type = bool
 }
 
 variable "byo_private_subnet_ocid" {

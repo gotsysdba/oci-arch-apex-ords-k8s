@@ -143,8 +143,7 @@ variables:
     description: "BYO VCN Resource"
     dependsOn:
       compartmentId: byo_vcn_compartment
-    required: false
-    default: ""
+    required: true
     visible: byo_vcn
 
   ociPublicSubnetOcid:
@@ -156,8 +155,7 @@ variables:
       vcnId: ociVcnOcid
       hidePublicSubnet: false
       hidePrivateSubnet: true
-    required: false
-    default: ""
+    required: true
     visible: byo_vcn
 
   ociPrivateSubnetOcid:
@@ -169,8 +167,7 @@ variables:
       vcnId: ociVcnOcid
       hidePublicSubnet: true
       hidePrivateSubnet: false
-    required: false
-    default: ""
+    required: true
     visible: byo_vcn
 
   #########################################################################

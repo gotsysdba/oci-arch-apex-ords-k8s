@@ -28,7 +28,7 @@ resource "oci_core_default_security_list" "lockdown" {
 
 // Public Subnet
 resource "oci_core_internet_gateway" "igw" {
-  count          = var.create_public_subnet ? 1 : 0
+   count                      = var.byo_vcn ? 0 : 1
   compartment_id = data.oci_core_vcn.vcn.compartment_id
   vcn_id         = data.oci_core_vcn.vcn.id
   display_name   = format("%s-igw", var.label_prefix)
@@ -36,7 +36,7 @@ resource "oci_core_internet_gateway" "igw" {
 }
 
 resource "oci_core_default_route_table" "public_route_table" {
-  count        = var.create_public_subnet ? 1 : 0
+   count                      = var.byo_vcn ? 0 : 1
   display_name = format("%s-public-route-table", var.label_prefix)
   route_rules {
     description       = "traffic to/from internet"
@@ -48,8 +48,8 @@ resource "oci_core_default_route_table" "public_route_table" {
 }
 
 resource "oci_core_subnet" "public" {
-  count                      = var.create_public_subnet ? 1 : 0
-  cidr_block                 = local.public_subnet_cidr
+   count                      = var.byo_vcn ? 0 : 1
+  cidr_block                 = cidrsubnet(one(data.oci_core_vcn.vcn.cidr_blocks), 1, 1)
   compartment_id             = data.oci_core_vcn.vcn.compartment_id
   vcn_id                     = data.oci_core_vcn.vcn.id
   display_name               = format("%s-public", var.label_prefix)
@@ -61,7 +61,7 @@ resource "oci_core_subnet" "public" {
 
 // Private Subnet
 resource "oci_core_nat_gateway" "ngw" {
-  count          = var.create_private_subnet ? 1 : 0
+   count                      = var.byo_vcn ? 0 : 1
   compartment_id = data.oci_core_vcn.vcn.compartment_id
   vcn_id         = data.oci_core_vcn.vcn.id
   display_name   = format("%s-ngw", var.label_prefix)
@@ -69,7 +69,7 @@ resource "oci_core_nat_gateway" "ngw" {
 }
 
 resource "oci_core_service_gateway" "sgw" {
-  count          = var.create_private_subnet ? 1 : 0
+   count                      = var.byo_vcn ? 0 : 1
   compartment_id = data.oci_core_vcn.vcn.compartment_id
   vcn_id         = data.oci_core_vcn.vcn.id
   display_name   = format("%s-sgw", var.label_prefix)
@@ -79,7 +79,7 @@ resource "oci_core_service_gateway" "sgw" {
 }
 
 resource "oci_core_route_table" "private_route_table" {
-  count          = var.create_private_subnet ? 1 : 0
+   count                      = var.byo_vcn ? 0 : 1
   compartment_id = data.oci_core_vcn.vcn.compartment_id
   vcn_id         = data.oci_core_vcn.vcn.id
   display_name   = format("%s-private-route-table", var.label_prefix)
@@ -101,8 +101,8 @@ resource "oci_core_route_table" "private_route_table" {
 }
 
 resource "oci_core_subnet" "private" {
-  count                      = var.create_private_subnet ? 1 : 0
-  cidr_block                 = local.private_subnet_cidr
+   count                      = var.byo_vcn ? 0 : 1
+  cidr_block                 = cidrsubnet(one(data.oci_core_vcn.vcn.cidr_blocks), 1, 0)
   compartment_id             = data.oci_core_vcn.vcn.compartment_id
   vcn_id                     = data.oci_core_vcn.vcn.id
   display_name               = format("%s-private", var.label_prefix)
