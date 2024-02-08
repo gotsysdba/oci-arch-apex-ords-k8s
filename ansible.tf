@@ -6,7 +6,7 @@ locals {
   ansible_home  = "${path.root}/ansible"
   orm_pe        = length(data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip) == 1 ? data.oci_resourcemanager_private_endpoint_reachable_ip.orm_pe_reachable_ip[0].ip_address : "N/A"
   reserved_ip   = length(oci_core_public_ip.service_lb) == 1 ? oci_core_public_ip.service_lb[0].ip_address : "N/A"
-  auth_token    = var.byo_auth_token != "" ? var.byo_auth_token : oci_identity_auth_token.identity_auth_token[0].token
+  auth_token    = var.worker_nsg_lockdown ? var.byo_auth_token == "" ? var.byo_auth_token : oci_identity_auth_token.identity_auth_token[0].token : "N/A"
   registry_url  = lower(format("%s.ocir.io/%s", local.image_region, data.oci_objectstorage_namespace.objectstorage_namespace.namespace))
   registry_user = lower(format("%s/%s", data.oci_objectstorage_namespace.objectstorage_namespace.namespace, data.oci_identity_user.identity_user.name))
   registry_auth = base64encode(format("%s:%s", local.registry_user, local.auth_token))
@@ -21,10 +21,10 @@ locals {
 data "template_file" "tf_vars_common_file" {
   template = file("${local.ansible_home}/roles/common/templates/vars.yaml")
   vars = {
-    oci_tenancy_ocid     = var.ociTenancyOcid
+    oci_tenancy_ocid     = local.tenancy_ocid
     oci_user_ocid        = local.user_ocid
     oci_fingerprint      = var.fingerprint
-    oci_region           = var.ociRegionIdentifier
+    oci_region           = local.region
     oci_compartment_ocid = local.compartment_ocid
   }
 }

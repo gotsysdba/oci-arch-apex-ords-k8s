@@ -24,7 +24,7 @@ data "oci_core_services" "core_services" {
 
 // oci_identity
 data "oci_identity_availability_domains" "all" {
-  compartment_id = var.ociTenancyOcid
+  compartment_id = local.tenancy_ocid
 }
 
 data "oci_identity_regions" "identity_regions" {}

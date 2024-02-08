@@ -18,13 +18,18 @@ variableGroups:
   #########################################################################
   - title: "Default Hidden"
     variables:
+      - tenancy_ocid
       - ociTenancyOcid
+      - region
       - ociRegionIdentifier
+      - ociCompartmentOcid
       - ociUserOcid
       - current_user_ocid
       - fingerprint
       - resPathUserPublicKey
       - resUserPublicKey
+      - resId
+      - ociUserPassword
     visible: false
 
   - title: "Hidden (Defaults)"
@@ -42,7 +47,7 @@ variableGroups:
   #########################################################################
   - title: "General Configuration"
     variables:
-      - ociCompartmentOcid
+      - compartment_ocid
       - label_prefix
     visible: true
 
@@ -54,8 +59,8 @@ variableGroups:
       - byo_vcn
       - byo_vcn_compartment
       - ociVcnOcid
-      - byo_private_subnet_ocid
-      - byo_public_subnet_ocid
+      - ociPrivateSubnetOcid
+      - ociPublicSubnetOcid
     visible: true
 
   #########################################################################
@@ -106,7 +111,7 @@ variableGroups:
 ###########################################################################
 variables:
 
-  ociCompartmentOcid:
+  compartment_ocid:
     type: oci:identity:compartment:id
     title: "Compartment"
     required: true
@@ -129,7 +134,7 @@ variables:
     description: "BYO VCN Compartment"
     type: oci:identity:compartment:id
     required: true
-    default: ociCompartmentOcid
+    default: compartment_ocid
     visible: byo_vcn
 
   ociVcnOcid:
@@ -142,7 +147,7 @@ variables:
     default: ""
     visible: byo_vcn
 
-  byo_public_subnet_ocid:
+  ociPublicSubnetOcid:
     type: oci:core:subnet:id
     title: "Public Subnet"
     description: "BYO Public Subnet - Leave Blank to Create"
@@ -155,7 +160,7 @@ variables:
     default: ""
     visible: byo_vcn
 
-  byo_private_subnet_ocid:
+  ociPrivateSubnetOcid:
     type: oci:core:subnet:id
     title: "Private Subnet"
     description: "BYO Private Subnet - Leave Blank to Create"

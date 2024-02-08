@@ -3,13 +3,10 @@
 
 locals {
   byo_vcn               = var.byo_vcn && var.ociVcnOcid != "" ? true : false
-  create_public_subnet  = local.byo_vcn && var.byo_public_subnet_ocid != "" ? false : true
-
-
-  
-  create_private_subnet = local.byo_vcn && var.byo_private_subnet_ocid != "" ? false : true
-
-
+  create_public_subnet  = local.byo_vcn && var.ociPublicSubnetOcid != "" ? false : true
+  public_subnet_ocid    = local.create_public_subnet ? "" : var.ociPublicSubnetOcid
+  create_private_subnet = local.byo_vcn && var.ociPrivateSubnetOcid != "" ? false : true
+  private_subnet_ocid   = local.create_private_subnet ? "" : var.ociPrivateSubnetOcid
 }
 
 module "network" {
@@ -18,8 +15,8 @@ module "network" {
   label_prefix            = local.label_prefix
   byo_vcn                 = local.byo_vcn
   byo_vcn_ocid            = var.ociVcnOcid
-  byo_public_subnet_ocid  = var.byo_public_subnet_ocid
+  byo_public_subnet_ocid  = local.public_subnet_ocid
   create_public_subnet    = local.create_public_subnet
-  byo_private_subnet_ocid = var.byo_private_subnet_ocid
+  byo_private_subnet_ocid = local.private_subnet_ocid
   create_private_subnet   = local.create_private_subnet
 }

@@ -3,7 +3,10 @@
 
 // House-Keeping
 locals {
-  compartment_ocid = var.ociCompartmentOcid != "" ? var.ociCompartmentOcid : var.ociTenancyOcid
+  tenancy_ocid     = var.ociTenancyOcid != "" ? var.ociCompartmentOcid : var.tenancy_ocid
+  compartment_ocid = var.ociCompartmentOcid != "" ? var.ociCompartmentOcid : local.tenancy_ocid
+  region           = var.ociRegionIdentifier != "" ? var.ociRegionIdentifier : var.region
+  user_ocid        = var.ociUserOcid != "" ? var.ociUserOcid : var.current_user_ocid
   label_prefix     = var.label_prefix != "" ? lower(var.label_prefix) : lower(random_pet.label.id)
 }
 
@@ -65,7 +68,7 @@ locals {
   }
   image_region = lookup(
     local.region_map,
-    var.ociRegionIdentifier
+    local.region
   )
 }
 

@@ -1,19 +1,37 @@
 # Copyright © 2023, Oracle and/or its affiliates.
 # All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
 
+variable "tenancy_ocid" {
+  description = "The Tenancy ID of the OCI Cloud Account in which to create the resources - ORM."
+  type        = string
+}
+
 variable "ociTenancyOcid" {
-  description = "The Tenancy ID of the OCI Cloud Account in which to create the resources."
+  description = "The Tenancy ID of the OCI Cloud Account in which to create the resources - Green Button."
+  type        = string
+  default     = ""
+}
+
+variable "compartment_ocid" {
+  description = "The compartment in which to create OCI Resources - ORM."
   type        = string
 }
 
 variable "ociCompartmentOcid" {
-  description = "The compartment in which to create OCI Resources."
+  description = "The compartment in which to create OCI Resources - Green Button."
+  type        = string
+  default     = ""
+}
+
+variable "region" {
+  description = "The OCI Region where resources will be created - ORM."
   type        = string
 }
 
 variable "ociRegionIdentifier" {
-  description = "The OCI Region where resources will be created."
+  description = "The OCI Region where resources will be created - Green Button."
   type        = string
+  default     = ""
 }
 
 variable "ociUserOcid" {
@@ -23,7 +41,7 @@ variable "ociUserOcid" {
 }
 
 variable "current_user_ocid" {
-  description = "The ID of the user that terraform will use to create the resources. ORM compatible"
+  description = "The ID of the user that terraform will use to create the resources - ORM."
   type        = string
   default     = ""
 }
@@ -289,13 +307,13 @@ variable "ociVcnOcid" {
   default     = ""
 }
 
-variable "byo_public_subnet_ocid" {
+variable "ociPublicSubnetOcid" {
   description = "The OCID of the BYO Public Subnet resource"
   type        = string
   default     = ""
 }
 
-variable "byo_private_subnet_ocid" {
+variable "ociPrivateSubnetOcid" {
   description = "The OCID of the BYO Private Subnet resource"
   type        = string
   default     = ""
@@ -309,6 +327,19 @@ variable "worker_nsg_lockdown" {
 
 variable "byo_auth_token" {
   description = "Bring Your Own Authorization Token"
+  type        = string
+  default     = ""
+}
+
+// Green Button
+variable "ociUserPassword" {
+  description = "LiveLabs Tenancy User Password"
+  type        = string
+  default     = ""
+}
+
+variable "resId" {
+  description = "LiveLabs User Reservation ID"
   type        = string
   default     = ""
 }
