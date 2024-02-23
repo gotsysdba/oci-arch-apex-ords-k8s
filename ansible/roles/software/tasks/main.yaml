@@ -68,11 +68,13 @@
 - name: Install Kubernetes Python Package
   when: common_is_cloud_run
   ansible.builtin.pip:
-    name: kubernetes
+    name:
+      - urllib3==1.26.0
+      - kubernetes
+      - docker
     extra_args: --user
+  register: python_modules
 
-- name: Install Docker Python Package
-  when: common_is_cloud_run
-  ansible.builtin.pip:
-    name: docker
-    extra_args: --user
+- name: Python Modules Install
+  debug:
+    msg: "{{ python_modules }}"
