@@ -73,8 +73,3 @@
       - kubernetes
       - docker
     extra_args: --user
-  register: python_modules
-
-- name: Python Modules Install
-  debug:
-    msg: "{{ python_modules }}"
